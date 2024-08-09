@@ -17,7 +17,7 @@ git clone "https://github.com/ludvikalkhoury/PyGrabIt.git"
 ```
 and then go the repository directory by typing:
 ```
-cd TRF/
+cd PyGrabIt/
 ```
 
 3) Now that you have the repository, run setup.py to install all dependent packages:
