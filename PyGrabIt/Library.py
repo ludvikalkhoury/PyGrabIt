@@ -99,7 +99,7 @@ class GraphGrabberApp:
 
 	def save_points(self):
 		if len(self.axis_points) < 4:
-			self.show_error("Please click on all four axis points and assign values first.")
+			self.show_error("Please click on all four axis points and assign values first.", is_error=True)
 			return
 
 		try:
@@ -108,11 +108,11 @@ class GraphGrabberApp:
 			y0 = float(self.y0_entry.get())
 			ymax = float(self.ymax_entry.get())
 		except ValueError:
-			self.show_error("Invalid axis values. Please enter valid numbers for X0, Xmax, Y0, and Ymax.")
+			self.show_error("Invalid axis values. Please enter valid numbers for X0, Xmax, Y0, and Ymax.", is_error=True)
 			return
 
 		# Clear error message if values are valid
-		self.error_label.config(text="")
+		self.error_label.config(text="", fg="black")
 
 		# Ask the user for the save location and filename
 		file_path = filedialog.asksaveasfilename(
@@ -122,20 +122,24 @@ class GraphGrabberApp:
 		)
 		
 		if file_path:
-			with open(file_path, "w") as file:
-				file.write("X Y\n")  # Write header labels
+			try:
+				with open(file_path, "w") as file:
+					file.write("X Y\n")  # Write header labels
 
-				for (x, y) in self.points:
-					# Convert pixel coordinates to graph coordinates
-					graph_x = x0 + (x / self.tk_image.width()) * (xmax - x0)
-					graph_y = y0 + ((self.tk_image.height() - y) / self.tk_image.height()) * (ymax - y0)
-					file.write(f"{graph_x:.4f} {graph_y:.4f}\n")
+					for (x, y) in self.points:
+						# Convert pixel coordinates to graph coordinates
+						graph_x = x0 + (x / self.tk_image.width()) * (xmax - x0)
+						graph_y = y0 + ((self.tk_image.height() - y) / self.tk_image.height()) * (ymax - y0)
+						file.write(f"{graph_x:.4f} {graph_y:.4f}\n")
+				
+				self.show_error(f"Points saved to {file_path}", is_error=False)
+			except Exception as e:
+				self.show_error(f"Failed to save points: {str(e)}", is_error=True)
 
-			print(f"Points saved to {file_path}")
-			
-
-	def show_error(self, message):
-		self.error_label.config(text=message)
+	def show_error(self, message, is_error=True):
+		# Set the text color based on whether it is an error message
+		color = "red" if is_error else "blue"
+		self.error_label.config(text=message, fg=color)
 
 	def on_click(self, event):
 		if self.image:
