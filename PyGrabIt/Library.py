@@ -15,8 +15,13 @@ class GraphGrabberApp:
 	Version = "1.0.0"
 	
 	def __init__(self, root):
+		self.h_line = None
+		self.v_line = None
+		
 		self.root = root
 		self.root.title("PyGrabIt")
+		
+		
 
 		# Create a frame for instructions and buttons
 		self.instruction_frame = tk.Frame(root)
@@ -34,6 +39,8 @@ class GraphGrabberApp:
 			"5) Save the points you captured as a .txt file"
 		), pady=10, justify=tk.LEFT)
 		self.instruction_label.pack()
+		
+		
 
 		# Error message label
 		self.error_label = tk.Label(root, text="", fg="red", font=("Helvetica", 10))
@@ -42,15 +49,23 @@ class GraphGrabberApp:
 		# Create the canvas and control buttons
 		self.canvas = tk.Canvas(root, bg="white")
 		self.canvas.pack(fill=tk.BOTH, expand=True)
+		
+		self.canvas.bind("<Motion>", self.on_mouse_move)
+		self.canvas.bind("<Enter>", self.hide_cursor)
+		self.canvas.bind("<Leave>", self.show_cursor)
 
 		self.frame = tk.Frame(root)
 		self.frame.pack(fill=tk.X)
+		
 
 		self.load_button = tk.Button(self.frame, text="Load Image", command=self.load_image)
 		self.load_button.pack(side=tk.LEFT, padx=5)
 
 		self.save_button = tk.Button(self.frame, text="Save Points", command=self.save_points)
 		self.save_button.pack(side=tk.LEFT, padx=5)
+		
+		self.reset_button = tk.Button(self.frame, text="Reset Points", command=self.reset_points)
+		self.reset_button.pack(side=tk.LEFT, padx=5)
 
 		self.x0_label = tk.Label(self.frame, text="X0:")
 		self.x0_label.pack(side=tk.LEFT, padx=5)
@@ -73,6 +88,7 @@ class GraphGrabberApp:
 		self.ymax_entry.pack(side=tk.LEFT, padx=5)
 
 		self.canvas.bind("<Button-1>", self.on_click)
+		self.canvas.bind("<Motion>", self.on_mouse_move)
 
 		self.image = None
 		self.points = []
@@ -96,6 +112,10 @@ class GraphGrabberApp:
 
 			# Clear any previous error messages
 			self.error_label.config(text="")
+
+			# Show the message to click on X0
+			self.show_error("Click on X0 to set the origin point.", is_error=False)
+
 
 	def save_points(self):
 		if len(self.axis_points) < 4:
@@ -148,34 +168,62 @@ class GraphGrabberApp:
 
 			if not self.axis_ranges_set:
 				if len(self.axis_points) < 4:
-					if not self.axis_points:
+					if len(self.axis_points) == 0:
 						label = 'X0'
+						self.show_error("Click on Xmax.", is_error=False)
 					elif len(self.axis_points) == 1:
 						label = 'Xmax'
+						self.show_error("Click on Y0.", is_error=False)
 					elif len(self.axis_points) == 2:
 						label = 'Y0'
+						self.show_error("Click on Ymax.", is_error=False)
 					elif len(self.axis_points) == 3:
 						label = 'Ymax'
 						self.axis_ranges_set = True
+						self.show_error("Axis points set. Now click on the points to capture.", is_error=False)
 
 					self.axis_points[label] = (x, y)
 					color = "blue" if label == 'X0' else "green" if label == 'Xmax' else "yellow" if label == 'Y0' else "orange"
 					self.canvas.create_oval(x-4, y-4, x+4, y+4, outline=color, fill=color)
 					self.canvas.create_text(x, y-10, text=label, fill=color)
 				else:
-					print("Axis ranges are already set. Click on points to save.")
 					self.show_points_window()
 			else:
+				# Add point to the list and draw it
 				self.points.append((x, y))
-
-				# Draw the point on the original canvas
 				self.canvas.create_oval(x-2, y-2, x+2, y+2, outline="red", fill="red")
 
 				if self.points_window is None:
 					self.show_points_window()
+				
+				# Draw the point on the secondary window as well
+				if self.points_window:
+					self.points_canvas.create_oval(x-2, y-2, x+2, y+2, outline="red", fill="red")
 
-				# Draw the point on the new window
-				self.points_canvas.create_oval(x-2, y-2, x+2, y+2, outline="red", fill="red")
+
+	def reset_points(self):
+		# Clear the points list and remove drawn points from the main canvas
+		self.points = []
+		self.canvas.delete("point")  # Delete all items with tag "point"
+
+		# If the points window exists, also clear points there
+		if self.points_window:
+			self.points_canvas.delete("point")  # Delete all items with tag "point"
+
+		# Re-draw the axis points
+		for label, (x, y) in self.axis_points.items():
+			color = "blue" if label == 'X0' else "green" if label == 'Xmax' else "yellow" if label == 'Y0' else "orange"
+			self.canvas.create_oval(x-4, y-4, x+4, y+4, outline=color, fill=color, tags="axis")
+			self.canvas.create_text(x, y-10, text=label, fill=color, tags="axis")
+
+			if self.points_window:
+				self.points_canvas.create_oval(x-4, y-4, x+4, y+4, outline=color, fill=color, tags="axis")
+				self.points_canvas.create_text(x, y-10, text=label, fill=color, tags="axis")
+
+		# Clear any previous error messages
+		self.show_error("Points have been reset. Click on the points you want to capture.", is_error=False)
+
+	
 
 	def show_points_window(self):
 		if self.points_window is None:
@@ -202,6 +250,23 @@ class GraphGrabberApp:
 				color = "blue" if label == 'X0' else "green" if label == 'Xmax' else "yellow" if label == 'Y0' else "orange"
 				self.points_canvas.create_oval(x-4, y-4, x+4, y+4, outline=color, fill=color)
 				self.points_canvas.create_text(x, y-10, text=label, fill=color)
+	
+	def on_mouse_move(self, event):
+		# Remove the previous lines
+		if self.h_line is not None:
+			self.canvas.delete(self.h_line)
+		if self.v_line is not None:
+			self.canvas.delete(self.v_line)
+
+		# Draw new lines following the mouse movement
+		self.h_line = self.canvas.create_line(0, event.y, self.canvas.winfo_width(), event.y, fill="black", dash=(2, 2))
+		self.v_line = self.canvas.create_line(event.x, 0, event.x, self.canvas.winfo_height(), fill="black", dash=(2, 2))
+	
+	def hide_cursor(self, event):
+		self.canvas.config(cursor="none")
+
+	def show_cursor(self, event):
+		self.canvas.config(cursor="")
 
 if __name__ == "__main__":
 	root = tk.Tk()
