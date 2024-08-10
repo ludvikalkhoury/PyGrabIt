@@ -66,6 +66,10 @@ class GraphGrabberApp:
 		
 		self.reset_button = tk.Button(self.frame, text="Reset Points", command=self.reset_points)
 		self.reset_button.pack(side=tk.LEFT, padx=5)
+		
+		self.reset_calibration_button = tk.Button(self.frame, text="Reset Calibration", command=self.reset_calibration_button)
+		self.reset_calibration_button.pack(side=tk.LEFT, padx=5)
+
 
 		self.x0_label = tk.Label(self.frame, text="X0:")
 		self.x0_label.pack(side=tk.LEFT, padx=5)
@@ -86,6 +90,11 @@ class GraphGrabberApp:
 		self.ymax_label.pack(side=tk.LEFT, padx=5)
 		self.ymax_entry = tk.Entry(self.frame, width=5)
 		self.ymax_entry.pack(side=tk.LEFT, padx=5)
+		
+		
+		
+		
+		
 
 		self.canvas.bind("<Button-1>", self.on_click)
 		self.canvas.bind("<Motion>", self.on_mouse_move)
@@ -184,25 +193,25 @@ class GraphGrabberApp:
 
 					self.axis_points[label] = (x, y)
 					color = "blue" if label == 'X0' else "green" if label == 'Xmax' else "yellow" if label == 'Y0' else "orange"
-					self.canvas.create_oval(x-4, y-4, x+4, y+4, outline=color, fill=color)
-					self.canvas.create_text(x, y-10, text=label, fill=color)
+					self.canvas.create_oval(x-4, y-4, x+4, y+4, outline=color, fill=color, tags="axis")
+					self.canvas.create_text(x, y-10, text=label, fill=color, tags="axis")
 				else:
 					self.show_points_window()
 			else:
 				# Add point to the list and draw it
 				self.points.append((x, y))
-				self.canvas.create_oval(x-2, y-2, x+2, y+2, outline="red", fill="red")
+				self.canvas.create_oval(x-2, y-2, x+2, y+2, outline="red", fill="red", tags="point")
 
 				if self.points_window is None:
 					self.show_points_window()
 				
 				# Draw the point on the secondary window as well
 				if self.points_window:
-					self.points_canvas.create_oval(x-2, y-2, x+2, y+2, outline="red", fill="red")
+					self.points_canvas.create_oval(x-2, y-2, x+2, y+2, outline="red", fill="red", tags="point")
 
 
 	def reset_points(self):
-		# Clear the points list and remove drawn points from the main canvas
+		# Clear the points list and remove drawn red points from the main canvas
 		self.points = []
 		self.canvas.delete("point")  # Delete all items with tag "point"
 
@@ -210,24 +219,38 @@ class GraphGrabberApp:
 		if self.points_window:
 			self.points_canvas.delete("point")  # Delete all items with tag "point"
 
-		# Re-draw the axis points
-		for label, (x, y) in self.axis_points.items():
-			color = "blue" if label == 'X0' else "green" if label == 'Xmax' else "yellow" if label == 'Y0' else "orange"
-			self.canvas.create_oval(x-4, y-4, x+4, y+4, outline=color, fill=color, tags="axis")
-			self.canvas.create_text(x, y-10, text=label, fill=color, tags="axis")
-
-			if self.points_window:
-				self.points_canvas.create_oval(x-4, y-4, x+4, y+4, outline=color, fill=color, tags="axis")
-				self.points_canvas.create_text(x, y-10, text=label, fill=color, tags="axis")
-
 		# Clear any previous error messages
-		self.show_error("Points have been reset. Click on the points you want to capture.", is_error=False)
-
+		self.error_label.config(text="")
+		self.show_error("Point reset. Now click on new points to capture.", is_error=False)
+		
 	
+	def reset_calibration_button(self):
+		self.axis_points = {}
+		self.axis_ranges_set = False
+
+		# Clear axis markers on the main canvas
+		self.canvas.delete("axis")
+
+		# Clear axis markers on the secondary canvas if it exists
+		if self.points_window:
+			self.points_canvas.delete("axis")
+
+		# Clear axis range entries
+		self.x0_entry.delete(0, tk.END)
+		self.xmax_entry.delete(0, tk.END)
+		self.y0_entry.delete(0, tk.END)
+		self.ymax_entry.delete(0, tk.END)
+		
+		self.show_error("Calibration reset. Click to set X0.", is_error=False)
+
+		
+		
+		
+		
 
 	def show_points_window(self):
 		if self.points_window is None:
-			# Get the dimensions of the main window
+			# Get the dimensions and position of the main window
 			main_window_x = self.root.winfo_rootx()
 			main_window_y = self.root.winfo_rooty()
 			main_window_width = self.root.winfo_width()
@@ -235,40 +258,35 @@ class GraphGrabberApp:
 
 			# Create a new window to show clicked points
 			self.points_window = tk.Toplevel(self.root)
-			self.points_window.title("Clicked Points")
+			self.points_window.title("Captured Points")
+			
+			# Create a blank canvas (no image) in the secondary window
+			self.points_canvas = tk.Canvas(self.points_window, bg="white", width=self.tk_image.width(), height=self.tk_image.height())
+			self.points_canvas.pack()
 
+			# Draw the axis markers on the secondary canvas
+			for label, (x, y) in self.axis_points.items():
+				color = "blue" if label == 'X0' else "green" if label == 'Xmax' else "yellow" if label == 'Y0' else "orange"
+				self.points_canvas.create_oval(x-4, y-4, x+4, y+4, outline=color, fill=color, tags="axis")
+				self.points_canvas.create_text(x, y-10, text=label, fill=color, tags="axis")
+			
 			# Position the new window to the right of the main window
 			new_window_x = main_window_x + main_window_width
 			new_window_y = main_window_y
 			self.points_window.geometry(f"{self.tk_image.width()}x{self.tk_image.height()}+{new_window_x}+{new_window_y}")
 
-			self.points_canvas = tk.Canvas(self.points_window, width=self.tk_image.width(), height=self.tk_image.height(), bg="white")
-			self.points_canvas.pack(fill=tk.BOTH, expand=True)
 
-			# Draw axis markers in the new window
-			for label, (x, y) in self.axis_points.items():
-				color = "blue" if label == 'X0' else "green" if label == 'Xmax' else "yellow" if label == 'Y0' else "orange"
-				self.points_canvas.create_oval(x-4, y-4, x+4, y+4, outline=color, fill=color)
-				self.points_canvas.create_text(x, y-10, text=label, fill=color)
-	
 	def on_mouse_move(self, event):
-		# Remove the previous lines
-		if self.h_line is not None:
-			self.canvas.delete(self.h_line)
-		if self.v_line is not None:
-			self.canvas.delete(self.v_line)
+		x, y = event.x, event.y
+		self.canvas.delete(self.h_line)
+		self.canvas.delete(self.v_line)
+		self.h_line = self.canvas.create_line(0, y, self.canvas.winfo_width(), y, fill='gray', dash=(2, 2))
+		self.v_line = self.canvas.create_line(x, 0, x, self.canvas.winfo_height(), fill='gray', dash=(2, 2))
 
-		# Draw new lines following the mouse movement
-		self.h_line = self.canvas.create_line(0, event.y, self.canvas.winfo_width(), event.y, fill="black", dash=(2, 2))
-		self.v_line = self.canvas.create_line(event.x, 0, event.x, self.canvas.winfo_height(), fill="black", dash=(2, 2))
-	
 	def hide_cursor(self, event):
 		self.canvas.config(cursor="none")
 
 	def show_cursor(self, event):
 		self.canvas.config(cursor="")
+		
 
-if __name__ == "__main__":
-	root = tk.Tk()
-	app = GraphGrabberApp(root)
-	root.mainloop()
