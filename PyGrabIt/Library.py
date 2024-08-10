@@ -290,3 +290,8 @@ class GraphGrabberApp:
 		self.canvas.config(cursor="")
 		
 
+
+#if __name__ == "__main__":
+#    root = tk.Tk()
+#    app = GraphGrabberApp(root)
+#    root.mainloop()
