@@ -1,6 +1,7 @@
 import os
 import sys
 import inspect
+import pathlib
 import setuptools
 from setuptools import setup
 
@@ -14,19 +15,22 @@ except:
 	try: frame = inspect.currentframe(); __file__ = inspect.getfile( frame )
 	finally: del frame  # https://docs.python.org/3/library/inspect.html#the-interpreter-stack
 HERE = os.path.realpath( os.path.dirname( __file__ ) )
+HERE2 = pathlib.Path(__file__).parent
 
+README = (HERE2 / "long_description.txt").read_text()
 
 setup_args = dict(name='PyGrabIt',
 package_dir={ '' : package_dir },
-      version='1.0.0', # @VERSION_INFO@
-      description='Python implementation of grabit toolbox.',
-      url='https://github.com/ludvikalkhoury/PyGrabIt.git',
-      author='Ludvik Alkhoury',
-      author_email='Ludvik.Alkhoury@gmail.com',
-      packages=['PyGrabIt'],
-      install_requires=[ ])
-      
-      
+	  version='0.0.1', # @VERSION_INFO@
+	  description='Python implementation of grabit toolbox.',
+	  long_description=long_description,
+	  url='https://github.com/ludvikalkhoury/PyGrabIt.git',
+	  author='Ludvik Alkhoury',
+	  author_email='Ludvik.Alkhoury@gmail.com',
+	  packages=['PyGrabIt'],
+	  install_requires=[ ])
+	  
+	  
 if __name__ == '__main__' and getattr( sys, 'argv', [] )[ 1: ]:
 	setuptools.setup( **setup_args )
 else:
@@ -34,7 +38,7 @@ else:
 The `PyGrabIt` setup.py file should not be run or imported directly.
 Instead, it is used as follows::
 
-    python -m pip install -e  "%s"
+	python -m pip install -e  "%s"
 
 """ % HERE )
 
