@@ -17,7 +17,7 @@ except:
 HERE = os.path.realpath( os.path.dirname( __file__ ) )
 HERE2 = pathlib.Path(__file__).parent
 
-README = (HERE2 / "long_description.txt").read_text()
+long_description = (HERE2 / "long_description.txt").read_text()
 
 setup_args = dict(name='PyGrabIt',
 package_dir={ '' : package_dir },
