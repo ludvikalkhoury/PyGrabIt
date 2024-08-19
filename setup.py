@@ -21,14 +21,14 @@ long_description = (HERE2 / "long_description.txt").read_text()
 
 setup_args = dict(name='PyGrabIt',
 package_dir={ '' : package_dir },
-	  version='0.0.7', # @VERSION_INFO@
+	  version='0.0.8', # @VERSION_INFO@
 	  description='Python implementation of grabit toolbox.',
 	  long_description=long_description,
 	  url='https://github.com/ludvikalkhoury/PyGrabIt.git',
 	  author='Ludvik Alkhoury',
 	  author_email='Ludvik.Alkhoury@gmail.com',
 	  packages=['PyGrabIt'],
-	  install_requires=[ ])
+	  install_requires=['Pillow>=9.4.0'])
 	  
 	  
 if __name__ == '__main__' and getattr( sys, 'argv', [] )[ 1: ]:
