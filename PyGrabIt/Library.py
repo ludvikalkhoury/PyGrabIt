@@ -109,7 +109,7 @@ class GraphGrabberApp:
 		self.points_canvas = None
 
 	def load_image(self):
-		file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png;*.jpg;*.jpeg")])
+		file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png *.jpg *.jpeg")])
 		if file_path:
 			self.image = Image.open(file_path)
 			self.tk_image = ImageTk.PhotoImage(self.image)
