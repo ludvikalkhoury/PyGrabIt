@@ -12,7 +12,7 @@ class COLORS:
 COLORS = COLORS()
 
 class GraphGrabberApp:
-	Version = "1.0.0"
+	Version = "0.0.7"
 	
 	def __init__(self, root):
 		self.h_line = None

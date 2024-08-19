@@ -12,7 +12,7 @@ class COLORS:
 COLORS = COLORS()
 
 class GraphGrabberApp:
-	Version = "1.0.0"
+	Version = "0.0.7"
 	
 	def __init__(self, root):
 		self.h_line = None
@@ -109,7 +109,7 @@ class GraphGrabberApp:
 		self.points_canvas = None
 
 	def load_image(self):
-		file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png;*.jpg;*.jpeg")])
+		file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png *.jpg *.jpeg")])
 		if file_path:
 			self.image = Image.open(file_path)
 			self.tk_image = ImageTk.PhotoImage(self.image)
