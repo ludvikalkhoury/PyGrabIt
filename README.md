@@ -30,5 +30,6 @@ python -m pip install -e  .
 python -m PyGrabIt
 ```
 
-
+Here is an example:
+![image](https://github.com/user-attachments/assets/7aab823d-8005-4b7c-8155-90cc59a3b7f6)
 
