@@ -15,14 +15,25 @@ class GraphGrabberApp:
 	Version = "0.0.8"
 	
 	def __init__(self, root):
+		
+		
+		self.zoom_factor = 5
+		self.magnifier_size = 100
+		
+		
 		self.h_line = None
 		self.v_line = None
+		self.magnifier_window = None
+		self.magnifier_canvas = None
 		
 		self.root = root
 		self.root.title("PyGrabIt")
 		
 		
-
+		
+		
+		
+		
 		# Create a frame for instructions and buttons
 		self.instruction_frame = tk.Frame(root)
 		self.instruction_frame.pack(fill=tk.X, pady=10)
@@ -40,8 +51,6 @@ class GraphGrabberApp:
 		), pady=10, justify=tk.LEFT)
 		self.instruction_label.pack()
 		
-		
-
 		# Error message label
 		self.error_label = tk.Label(root, text="", fg="red", font=("Helvetica", 10))
 		self.error_label.pack(pady=5)
@@ -56,7 +65,6 @@ class GraphGrabberApp:
 
 		self.frame = tk.Frame(root)
 		self.frame.pack(fill=tk.X)
-		
 
 		self.load_button = tk.Button(self.frame, text="Load Image", command=self.load_image)
 		self.load_button.pack(side=tk.LEFT, padx=5)
@@ -69,7 +77,6 @@ class GraphGrabberApp:
 		
 		self.reset_calibration_button = tk.Button(self.frame, text="Reset Calibration", command=self.reset_calibration_button)
 		self.reset_calibration_button.pack(side=tk.LEFT, padx=5)
-
 
 		self.x0_label = tk.Label(self.frame, text="X0:")
 		self.x0_label.pack(side=tk.LEFT, padx=5)
@@ -90,11 +97,6 @@ class GraphGrabberApp:
 		self.ymax_label.pack(side=tk.LEFT, padx=5)
 		self.ymax_entry = tk.Entry(self.frame, width=5)
 		self.ymax_entry.pack(side=tk.LEFT, padx=5)
-		
-		
-		
-		
-		
 
 		self.canvas.bind("<Button-1>", self.on_click)
 		self.canvas.bind("<Motion>", self.on_mouse_move)
@@ -124,7 +126,30 @@ class GraphGrabberApp:
 
 			# Show the message to click on X0
 			self.show_error("Click on X0 to set the origin point.", is_error=False)
+			
+			# Create magnifier window
+			if self.magnifier_window is None:
+				self.create_magnifier_window()
+				
+	def create_magnifier_window(self):
+		self.magnifier_window = tk.Toplevel(self.root)
+		self.magnifier_window.title("Magnifier")
+		self.magnifier_canvas = tk.Canvas(self.magnifier_window, width=200, height=200)
+		self.magnifier_canvas.pack()
+		
+		
+		# Create sliders for zoom_factor and magnifier_size
+		self.zoom_slider = tk.Scale(self.magnifier_window, from_=1, to=20, orient=tk.HORIZONTAL, label="Zoom Factor",
+									command=self.update_zoom_factor)
+		self.zoom_slider.set(self.zoom_factor)
+		self.zoom_slider.pack(side=tk.LEFT, padx=5)
 
+		self.size_slider = tk.Scale(self.magnifier_window, from_=50, to=400, orient=tk.HORIZONTAL, label="Magnifier Size",
+									command=self.update_magnifier_size)
+		self.size_slider.set(self.magnifier_size)
+		self.size_slider.pack(side=tk.LEFT, padx=5)
+		
+		
 
 	def save_points(self):
 		if len(self.axis_points) < 4:
@@ -282,6 +307,9 @@ class GraphGrabberApp:
 		self.canvas.delete(self.v_line)
 		self.h_line = self.canvas.create_line(0, y, self.canvas.winfo_width(), y, fill='gray', dash=(2, 2))
 		self.v_line = self.canvas.create_line(x, 0, x, self.canvas.winfo_height(), fill='gray', dash=(2, 2))
+		
+		if self.image and self.magnifier_window:
+			self.update_magnifier(event.x, event.y)
 
 	def hide_cursor(self, event):
 		self.canvas.config(cursor="none")
@@ -289,6 +317,65 @@ class GraphGrabberApp:
 	def show_cursor(self, event):
 		self.canvas.config(cursor="")
 		
+	
+	def update_magnifier(self, x, y):
+		zoom_factor = self.zoom_factor
+		magnifier_size = self.magnifier_size
+		
+		x_min = max(0, x - magnifier_size // 2 // zoom_factor)
+		y_min = max(0, y - magnifier_size // 2 // zoom_factor)
+		x_max = min(self.image.width, x_min + magnifier_size // zoom_factor)
+		y_max = min(self.image.height, y_min + magnifier_size // zoom_factor)
+		
+		
+		
+		zoomed_image = self.image.crop((x_min, y_min, x_max, y_max)).resize((magnifier_size, magnifier_size), Image.LANCZOS)
+		self.tk_zoomed_image = ImageTk.PhotoImage(zoomed_image)
+		
+		self.magnifier_canvas.delete("all")
+		self.magnifier_canvas.create_image(0, 0, anchor=tk.NW, image=self.tk_zoomed_image)
+
+
+
+	
+		# Draw horizontal and vertical lines in the middle of the magnifier
+		center_x = magnifier_size // 2
+		center_y = magnifier_size // 2
+		line_color = "black"  # Choose a color for the lines
+
+		self.magnifier_canvas.create_line(0, center_y, magnifier_size, center_y, fill=line_color, dash=(2, 2))
+		self.magnifier_canvas.create_line(center_x, 0, center_x, magnifier_size, fill=line_color, dash=(2, 2))
+	
+		# Draw captured points on the magnifier canvas
+		if self.points:
+			for (px, py) in self.points:
+				# Transform points to magnifier coordinates
+				mag_x = (px - x_min) * magnifier_size // (x_max - x_min)
+				mag_y = (py - y_min) * magnifier_size // (y_max - y_min)
+				self.magnifier_canvas.create_oval(mag_x-2, mag_y-2, mag_x+2, mag_y+2, outline="red", fill="red", tags="point")
+			
+	
+		# Draw calibration points on the magnifier canvas
+		if self.axis_points:
+			for label, (px, py) in self.axis_points.items():
+				# Transform points to magnifier coordinates
+				mag_x = (px - x_min) * magnifier_size // (x_max - x_min)
+				mag_y = (py - y_min) * magnifier_size // (y_max - y_min)
+				color = "blue" if label == 'X0' else "green" if label == 'Xmax' else "yellow" if label == 'Y0' else "orange"
+				self.magnifier_canvas.create_oval(mag_x-4, mag_y-4, mag_x+4, mag_y+4, outline=color, fill=color, tags="axis")
+				self.magnifier_canvas.create_text(mag_x, mag_y-10, text=label, fill=color, tags="axis")
+		
+		
+
+
+	def update_zoom_factor(self, value):
+		self.zoom_factor = int(value)
+		self.update_magnifier(self.canvas.winfo_pointerx(), self.canvas.winfo_pointery())
+
+	def update_magnifier_size(self, value):
+		self.magnifier_size = int(value)
+		self.magnifier_canvas.config(width=self.magnifier_size, height=self.magnifier_size)
+		self.update_magnifier(self.canvas.winfo_pointerx(), self.canvas.winfo_pointery())
 
 
 #if __name__ == "__main__":
