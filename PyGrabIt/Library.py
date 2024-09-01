@@ -1,7 +1,8 @@
 import os 
 import tkinter as tk
 from tkinter import filedialog
-from PIL import Image, ImageTk
+from tkinter import colorchooser
+from PIL import Image, ImageTk, ImageDraw
 
 class COLORS:
 	def __enter__( self ):
@@ -24,11 +25,10 @@ class GraphGrabberApp:
 		self.zoom_factor = 5
 		self.magnifier_size = 100
 		
-		#TODO
+		# Main root
 		self.root = root
 		self.root.geometry("500x300")  # Set the size of the main window
 		self.root.title("PyGrabIt")
-		
 		
 
 		# Create a frame for instructions and buttons
@@ -100,10 +100,14 @@ class GraphGrabberApp:
 		# Create a new frame for the buttons on the next line
 		self.frame3 = tk.Frame(root)
 		self.frame3.pack(fill=tk.X)
-		
 		self.magnifier_button = tk.Button(self.frame3, text="Open Magnifier", command=self.create_magnifier_window)
 		self.magnifier_button.pack(side=tk.LEFT, padx=5, pady=5)
 
+
+		# Add a window to create detect curves by colors
+		self.color_capture_button = tk.Button(self.frame3, text="Auto Detect", command=self.select_color)
+		self.color_capture_button.pack(side=tk.LEFT, padx=5, pady=5)
+		
 		self.image = None
 		self.points = []
 		self.axis_points = {}
@@ -117,7 +121,111 @@ class GraphGrabberApp:
 	
 
 
+	def select_color(self):
+		# Open color picker dialog
+		color = colorchooser.askcolor(title="Choose a color")
 
+		if color[1] is not None:
+			self.selected_color = color[0]  # Store the selected color (RGB)
+			self.show_selected_color()	
+			
+			
+			
+
+
+			
+			
+		
+	def auto_capture(self):
+
+		# whenever you click capture, you first delete all points 
+		points_copy = self.points[:]
+		for px, py, point_id in points_copy:
+			self.canvas.delete(point_id)  # Remove the point from the canvas
+			self.points.remove((px, py, point_id))  # Remove the point from the list
+
+				
+		if not hasattr(self, 'selected_color') or self.selected_color is None:
+			print("No color selected.")
+			return
+		
+		# Get the selected color
+		target_color = self.selected_color
+		
+		# Convert the selected color to a format suitable for comparison
+		target_r, target_g, target_b = target_color
+		
+		# Create a copy of the image to work with
+		image_copy = self.image.copy()
+		width, height = image_copy.size
+				
+		# Define a threshold for color similarity
+		color_threshold = self.color_threshold_slider.get()  # Adjust this threshold as needed
+		
+		# Scan through all pixels in the image
+		for x in range(width):
+			for y in range(height):
+				pixel = image_copy.getpixel((x, y))
+				
+				if isinstance(pixel, tuple):
+					r, g, b = pixel[:3]
+					
+					# Calculate the color difference
+					color_diff = abs(r - target_r) + abs(g - target_g) + abs(b - target_b)
+					
+					# If the color difference is within the threshold, draw a red point
+					if color_diff < color_threshold:
+						point_id = self.canvas.create_oval(x-2, y-2, x+2, y+2, outline="red", fill="red", tags="point")
+						self.points.append((x, y, point_id))
+						
+
+
+
+		
+		
+	def show_selected_color(self):
+		# Display the selected color in a new window
+		self.selected_color_window = tk.Toplevel(self.root)
+		self.selected_color_window.title("Selected Color")
+
+		# Create a canvas to display the selected color
+		color_canvas = tk.Canvas(self.selected_color_window, width=100, height=100, bg=self.rgb_to_hex(self.selected_color))
+		color_canvas.pack(pady=20)
+		
+		
+		 # Color threshold slider
+		self.color_threshold_label = tk.Label(self.selected_color_window, text="Color Threshold:")
+		self.color_threshold_label.pack(side=tk.TOP, padx=5, pady=0)
+		self.color_threshold_slider = tk.Scale(self.selected_color_window, from_=0, to_=255, orient=tk.HORIZONTAL)
+		self.color_threshold_slider.set(50)  # Set initial value
+		self.color_threshold_slider.pack(side=tk.TOP, padx=5, pady=5)
+		
+		
+		# Delta X label and entry
+		self.Deltax_label = tk.Label(self.selected_color_window, text="Δ X:")
+		self.Deltax_label.pack(side=tk.LEFT, padx=5, pady=5)
+		self.Deltax_entry = tk.Entry(self.selected_color_window, width=5)
+		self.Deltax_entry.pack(side=tk.LEFT, padx=5, pady=5)
+		self.Deltax_entry.insert(0, "5")  # Insert default value of 5
+		
+		# Delta Y label and entry
+		self.Deltay_label = tk.Label(self.selected_color_window, text="Δ Y:")
+		self.Deltay_label.pack(side=tk.LEFT, padx=5, pady=5)
+		self.Deltay_entry = tk.Entry(self.selected_color_window, width=5)
+		self.Deltay_entry.pack(side=tk.LEFT, padx=5, pady=5)
+		self.Deltay_entry.insert(0, "5")  # Insert default value of 5
+		
+		# Auto Capture button
+		self.auto_capture_button = tk.Button(self.selected_color_window, text="Capture", command=self.auto_capture)
+		self.auto_capture_button.pack(side=tk.LEFT, padx=5)
+				
+		
+		
+		
+	@staticmethod
+	def rgb_to_hex(rgb):
+		# Convert RGB tuple to HEX format
+		return "#{:02x}{:02x}{:02x}".format(int(rgb[0]), int(rgb[1]), int(rgb[2]))
 
 
 	def load_image(self):
@@ -266,9 +374,9 @@ class GraphGrabberApp:
 				if self.points_window is None:
 					self.show_points_window()
 				
-				# Draw the point on the secondary window as well
-				if self.points_window:
-					self.points_canvas.create_oval(x-2, y-2, x+2, y+2, outline="red", fill="red", tags="point")
+				## Draw the point on the secondary window as well
+				#if self.points_window:
+				#	self.points_canvas.create_oval(x-2, y-2, x+2, y+2, outline="red", fill="red", tags="point")
 
 	def remove_point(self, x, y):
 		# Make a copy of the points list to avoid modifying it while iterating
