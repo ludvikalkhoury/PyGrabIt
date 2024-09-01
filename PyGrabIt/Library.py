@@ -54,6 +54,12 @@ class GraphGrabberApp:
 		# Error message label
 		self.error_label = tk.Label(root, text="", fg="red", font=("Helvetica", 10))
 		self.error_label.pack(pady=5)
+		
+		#WIP
+		# Create a new window for the canvas
+		self.canvas_window = tk.Toplevel(self.root)
+		self.canvas_window.title("Image Canvas")
+		self.canvas_window.geometry("800x600")  # Set the size for the canvas window
 
 		# Create the canvas and control buttons
 		self.canvas = tk.Canvas(root, bg="white")
@@ -100,6 +106,9 @@ class GraphGrabberApp:
 
 		self.canvas.bind("<Button-1>", self.on_click)
 		self.canvas.bind("<Motion>", self.on_mouse_move)
+		
+		self.magnifier_button = tk.Button(self.frame, text="Open Magnifier", command=self.create_magnifier_window)
+		self.magnifier_button.pack(side=tk.LEFT, padx=5)
 
 		self.image = None
 		self.points = []
