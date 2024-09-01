@@ -322,7 +322,7 @@ class GraphGrabberApp:
 				with open(file_path, "w") as file:
 					file.write("X Y\n")  # Write header labels
 
-					for (x, y) in self.points:
+					for (x, y, id_points) in self.points:
 						# Convert pixel coordinates to graph coordinates
 						graph_x = x0 + (x / self.tk_image.width()) * (xmax - x0)
 						graph_y = y0 + ((self.tk_image.height() - y) / self.tk_image.height()) * (ymax - y0)
