@@ -17,25 +17,23 @@ class GraphGrabberApp:
 	def __init__(self, root):
 		
 		
-		self.zoom_factor = 5
-		self.magnifier_size = 100
-		
-		
 		self.h_line = None
 		self.v_line = None
 		self.magnifier_window = None
 		self.magnifier_canvas = None
+		self.zoom_factor = 5
+		self.magnifier_size = 100
 		
+		#TODO
 		self.root = root
+		self.root.geometry("400x300")  # Set the size of the main window
 		self.root.title("PyGrabIt")
 		
 		
-		
-		
-		
-		
+
 		# Create a frame for instructions and buttons
 		self.instruction_frame = tk.Frame(root)
+
 		self.instruction_frame.pack(fill=tk.X, pady=10)
 
 		# Instruction text
@@ -55,19 +53,7 @@ class GraphGrabberApp:
 		self.error_label = tk.Label(root, text="", fg="red", font=("Helvetica", 10))
 		self.error_label.pack(pady=5)
 		
-		#WIP
-		# Create a new window for the canvas
-		self.canvas_window = tk.Toplevel(self.root)
-		self.canvas_window.title("Image Canvas")
-		self.canvas_window.geometry("800x600")  # Set the size for the canvas window
-
-		# Create the canvas and control buttons
-		self.canvas = tk.Canvas(root, bg="white")
-		self.canvas.pack(fill=tk.BOTH, expand=True)
 		
-		self.canvas.bind("<Motion>", self.on_mouse_move)
-		self.canvas.bind("<Enter>", self.hide_cursor)
-		self.canvas.bind("<Leave>", self.show_cursor)
 
 		self.frame = tk.Frame(root)
 		self.frame.pack(fill=tk.X)
@@ -104,8 +90,7 @@ class GraphGrabberApp:
 		self.ymax_entry = tk.Entry(self.frame, width=5)
 		self.ymax_entry.pack(side=tk.LEFT, padx=5)
 
-		self.canvas.bind("<Button-1>", self.on_click)
-		self.canvas.bind("<Motion>", self.on_mouse_move)
+
 		
 		self.magnifier_button = tk.Button(self.frame, text="Open Magnifier", command=self.create_magnifier_window)
 		self.magnifier_button.pack(side=tk.LEFT, padx=5)
@@ -118,10 +103,28 @@ class GraphGrabberApp:
 		# Create a separate window to display points
 		self.points_window = None
 		self.points_canvas = None
+		
+		
+		
+		
+		
 
 	def load_image(self):
 		file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png *.jpg *.jpeg")])
 		if file_path:
+			
+			# Create a new window for the canvas
+			self.canvas_window = tk.Toplevel(self.root)
+			self.canvas_window.title("Image Canvas")
+			self.canvas = tk.Canvas(self.canvas_window, bg="white")
+			self.canvas.pack(fill=tk.BOTH, expand=True)
+			
+			self.canvas.bind("<Motion>", self.on_mouse_move)
+			self.canvas.bind("<Enter>", self.hide_cursor)
+			self.canvas.bind("<Leave>", self.show_cursor)
+			self.canvas.bind("<Button-1>", self.on_click)
+			self.canvas.bind("<Motion>", self.on_mouse_move)
+		
 			self.image = Image.open(file_path)
 			self.tk_image = ImageTk.PhotoImage(self.image)
 			self.canvas.config(width=self.tk_image.width(), height=self.tk_image.height())
@@ -137,8 +140,8 @@ class GraphGrabberApp:
 			self.show_error("Click on X0 to set the origin point.", is_error=False)
 			
 			# Create magnifier window
-			if self.magnifier_window is None:
-				self.create_magnifier_window()
+			#if self.magnifier_window is None:
+			#	self.create_magnifier_window()
 				
 	def create_magnifier_window(self):
 		self.magnifier_window = tk.Toplevel(self.root)
@@ -283,6 +286,8 @@ class GraphGrabberApp:
 		
 
 	def show_points_window(self):
+		a = 1
+		'''
 		if self.points_window is None:
 			# Get the dimensions and position of the main window
 			main_window_x = self.root.winfo_rootx()
@@ -308,7 +313,7 @@ class GraphGrabberApp:
 			new_window_x = main_window_x + main_window_width
 			new_window_y = main_window_y
 			self.points_window.geometry(f"{self.tk_image.width()}x{self.tk_image.height()}+{new_window_x}+{new_window_y}")
-
+		'''
 
 	def on_mouse_move(self, event):
 		x, y = event.x, event.y
