@@ -44,8 +44,9 @@ class GraphGrabberApp:
 			"1) Load an image\n"
 			"2) Calibrate by clicking on the X and Y coordinates for the origin and maximum points\n"
 			"3) Enter the X and Y values of the origin and maximum point\n"
-			"4) Click on the points you want to capture\n"
-			"5) Save the points you captured as a .txt file"
+			"4) Left click on the points you want to capture\n"
+			"5) Right click on the points you want to delete\n"
+			"6) Save the points you captured as a .txt file"
 		), pady=5, justify=tk.LEFT)
 		self.instruction_label.pack()
 		
@@ -133,6 +134,7 @@ class GraphGrabberApp:
 			self.canvas.bind("<Enter>", self.hide_cursor)
 			self.canvas.bind("<Leave>", self.show_cursor)
 			self.canvas.bind("<Button-1>", self.on_click)
+			self.canvas.bind("<Button-3>", self.on_right_click)
 
 			
 
@@ -159,7 +161,9 @@ class GraphGrabberApp:
 				
 
 
-		
+	def on_right_click(self, event):
+		x, y = event.x, event.y
+		self.remove_point(x, y)
 		
 	def create_magnifier_window(self):
 		self.magnifier_window = tk.Toplevel(self.root)
@@ -254,9 +258,11 @@ class GraphGrabberApp:
 					self.show_points_window()
 			else:
 				# Add point to the list and draw it
-				self.points.append((x, y))
-				self.canvas.create_oval(x-2, y-2, x+2, y+2, outline="red", fill="red", tags="point")
+				point_id = self.canvas.create_oval(x-2, y-2, x+2, y+2, outline="red", fill="red", tags="point")
+				self.points.append((x, y, point_id))
+				
 
+					
 				if self.points_window is None:
 					self.show_points_window()
 				
@@ -264,7 +270,15 @@ class GraphGrabberApp:
 				if self.points_window:
 					self.points_canvas.create_oval(x-2, y-2, x+2, y+2, outline="red", fill="red", tags="point")
 
-
+	def remove_point(self, x, y):
+		# Make a copy of the points list to avoid modifying it while iterating
+		points_copy = self.points[:]
+		for px, py, point_id in points_copy:
+			if abs(px - x) < 5 and abs(py - y) < 5:  # Check if click is near the point
+				self.canvas.delete(point_id)  # Remove the point from the canvas
+				self.points.remove((px, py, point_id))  # Remove the point from the list
+				break
+				
 	def reset_points(self):
 		# Clear the points list and remove drawn red points from the main canvas
 		self.points = []
@@ -380,7 +394,7 @@ class GraphGrabberApp:
 	
 		# Draw captured points on the magnifier canvas
 		if self.points:
-			for (px, py) in self.points:
+			for (px, py, point_id) in self.points:
 				# Transform points to magnifier coordinates
 				mag_x = (px - x_min) * magnifier_size // (x_max - x_min)
 				mag_y = (py - y_min) * magnifier_size // (y_max - y_min)
@@ -402,7 +416,11 @@ class GraphGrabberApp:
 
 	def update_zoom_factor(self, value):
 		self.zoom_factor = int(value)
-		self.update_magnifier(self.canvas.winfo_pointerx(), self.canvas.winfo_pointery())
+		if self.magnifier_canvas:
+			# Trigger a redraw of the magnifier with the new zoom factor
+			self.update_magnifier(self.canvas.winfo_pointerx() - self.canvas.winfo_rootx(), self.canvas.winfo_pointery() - self.canvas.winfo_rooty())
+
+		#self.update_magnifier(self.canvas.winfo_pointerx(), self.canvas.winfo_pointery())
 
 	def update_magnifier_size(self, value):
 		self.magnifier_size = int(value)
