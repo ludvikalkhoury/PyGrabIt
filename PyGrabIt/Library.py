@@ -26,7 +26,7 @@ class GraphGrabberApp:
 		
 		#TODO
 		self.root = root
-		self.root.geometry("400x300")  # Set the size of the main window
+		self.root.geometry("500x300")  # Set the size of the main window
 		self.root.title("PyGrabIt")
 		
 		
@@ -37,7 +37,7 @@ class GraphGrabberApp:
 		self.instruction_frame.pack(fill=tk.X, pady=10)
 
 		# Instruction text
-		self.instruction_label_bold = tk.Label(self.instruction_frame, text="Welcome to PyGrabIt! To start:", font=("Helvetica", 12, "bold"), pady=10)
+		self.instruction_label_bold = tk.Label(self.instruction_frame, text="Welcome to PyGrabIt! To start:", font=("Helvetica", 12, "bold"), pady=5)
 		self.instruction_label_bold.pack()
 
 		self.instruction_label = tk.Label(self.instruction_frame, text=(
@@ -46,7 +46,7 @@ class GraphGrabberApp:
 			"3) Enter the X and Y values of the origin and maximum point\n"
 			"4) Click on the points you want to capture\n"
 			"5) Save the points you captured as a .txt file"
-		), pady=10, justify=tk.LEFT)
+		), pady=5, justify=tk.LEFT)
 		self.instruction_label.pack()
 		
 		# Error message label
@@ -69,31 +69,39 @@ class GraphGrabberApp:
 		
 		self.reset_calibration_button = tk.Button(self.frame, text="Reset Calibration", command=self.reset_calibration_button)
 		self.reset_calibration_button.pack(side=tk.LEFT, padx=5)
+		
+		
+		# Create a new frame for the buttons on the next line
+		self.frame2 = tk.Frame(root)
+		self.frame2.pack(fill=tk.X)
+		
+		self.x0_label = tk.Label(self.frame2, text="X0:")
+		self.x0_label.pack(side=tk.LEFT, padx=5, pady=5)
+		self.x0_entry = tk.Entry(self.frame2, width=5)
+		self.x0_entry.pack(side=tk.LEFT, padx=5, pady=5)
 
-		self.x0_label = tk.Label(self.frame, text="X0:")
-		self.x0_label.pack(side=tk.LEFT, padx=5)
-		self.x0_entry = tk.Entry(self.frame, width=5)
-		self.x0_entry.pack(side=tk.LEFT, padx=5)
-
-		self.xmax_label = tk.Label(self.frame, text="Xmax:")
+		self.xmax_label = tk.Label(self.frame2, text="Xmax:")
 		self.xmax_label.pack(side=tk.LEFT, padx=5)
-		self.xmax_entry = tk.Entry(self.frame, width=5)
+		self.xmax_entry = tk.Entry(self.frame2, width=5)
 		self.xmax_entry.pack(side=tk.LEFT, padx=5)
 
-		self.y0_label = tk.Label(self.frame, text="Y0:")
-		self.y0_label.pack(side=tk.LEFT, padx=5)
-		self.y0_entry = tk.Entry(self.frame, width=5)
-		self.y0_entry.pack(side=tk.LEFT, padx=5)
+		self.y0_label = tk.Label(self.frame2, text="Y0:")
+		self.y0_label.pack(side=tk.LEFT, padx=5, pady=5)
+		self.y0_entry = tk.Entry(self.frame2, width=5)
+		self.y0_entry.pack(side=tk.LEFT, padx=5, pady=5)
 
-		self.ymax_label = tk.Label(self.frame, text="Ymax:")
-		self.ymax_label.pack(side=tk.LEFT, padx=5)
-		self.ymax_entry = tk.Entry(self.frame, width=5)
-		self.ymax_entry.pack(side=tk.LEFT, padx=5)
+		self.ymax_label = tk.Label(self.frame2, text="Ymax:")
+		self.ymax_label.pack(side=tk.LEFT, padx=5, pady=5)
+		self.ymax_entry = tk.Entry(self.frame2, width=5)
+		self.ymax_entry.pack(side=tk.LEFT, padx=5, pady=5)
 
 
+		# Create a new frame for the buttons on the next line
+		self.frame3 = tk.Frame(root)
+		self.frame3.pack(fill=tk.X)
 		
-		self.magnifier_button = tk.Button(self.frame, text="Open Magnifier", command=self.create_magnifier_window)
-		self.magnifier_button.pack(side=tk.LEFT, padx=5)
+		self.magnifier_button = tk.Button(self.frame3, text="Open Magnifier", command=self.create_magnifier_window)
+		self.magnifier_button.pack(side=tk.LEFT, padx=5, pady=5)
 
 		self.image = None
 		self.points = []
@@ -105,9 +113,11 @@ class GraphGrabberApp:
 		self.points_canvas = None
 		
 		
-		
-		
-		
+	
+
+
+
+
 
 	def load_image(self):
 		file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png *.jpg *.jpeg")])
@@ -123,7 +133,10 @@ class GraphGrabberApp:
 			self.canvas.bind("<Enter>", self.hide_cursor)
 			self.canvas.bind("<Leave>", self.show_cursor)
 			self.canvas.bind("<Button-1>", self.on_click)
-			self.canvas.bind("<Motion>", self.on_mouse_move)
+
+			
+
+
 		
 			self.image = Image.open(file_path)
 			self.tk_image = ImageTk.PhotoImage(self.image)
@@ -143,6 +156,11 @@ class GraphGrabberApp:
 			#if self.magnifier_window is None:
 			#	self.create_magnifier_window()
 				
+				
+
+
+		
+		
 	def create_magnifier_window(self):
 		self.magnifier_window = tk.Toplevel(self.root)
 		self.magnifier_window.title("Magnifier")
