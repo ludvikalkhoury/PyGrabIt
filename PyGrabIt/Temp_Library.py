@@ -155,6 +155,7 @@ class GraphGrabberApp:
 		self.canvas.unbind("<Button-1>")
 		
 
+
 	def select_color(self):
 		
 		if self.image:
@@ -171,47 +172,59 @@ class GraphGrabberApp:
 			
 		
 	def auto_capture(self):
-
-		# whenever you click capture, you first delete all points 
+		# Remove all previous points
 		points_copy = self.points[:]
 		for px, py, point_id in points_copy:
 			self.canvas.delete(point_id)  # Remove the point from the canvas
 			self.points.remove((px, py, point_id))  # Remove the point from the list
 
-				
 		if not hasattr(self, 'selected_color') or self.selected_color is None:
 			print("No color selected.")
 			return
-		
+
 		# Get the selected color
 		target_color = self.selected_color
-		
+
 		# Convert the selected color to a format suitable for comparison
 		target_r, target_g, target_b = target_color
-		
+
 		# Create a copy of the image to work with
 		image_copy = self.image.copy()
 		width, height = image_copy.size
-				
+
 		# Define a threshold for color similarity
 		color_threshold = self.color_threshold_slider.get()  # Adjust this threshold as needed
+
+		# Define DeltaX and DeltaY
+		DeltaX = int(self.Deltax_entry.get())  # Adjust this value as needed
+		DeltaY = int(self.Deltay_entry.get())  # Adjust this value as needed
 		
+		print(DeltaX)
+		
+		# Initialize the last captured point position
+		last_captured_x = -DeltaX
+		last_captured_y = -DeltaY
+
 		# Scan through all pixels in the image
-		for x in range(width):
-			for y in range(height):
+		for x in range(0, width, DeltaX):  # Increment x by DeltaX
+			for y in range(0, height, DeltaY):  # Increment y by DeltaY
 				pixel = image_copy.getpixel((x, y))
-				
+
 				if isinstance(pixel, tuple):
 					r, g, b = pixel[:3]
-					
+
 					# Calculate the color difference
 					color_diff = abs(r - target_r) + abs(g - target_g) + abs(b - target_b)
-					
-					# If the color difference is within the threshold, draw a red point
+
+					# If the color difference is within the threshold, and the point is sufficiently separated, draw a red point
 					if color_diff < color_threshold:
-						point_id = self.canvas.create_oval(x-2, y-2, x+2, y+2, outline="red", fill="red", tags="point")
-						self.points.append((x, y, point_id))
-						
+						if (abs(x - last_captured_x) >= DeltaX) or (abs(y - last_captured_y) >= DeltaY):
+							point_id = self.canvas.create_oval(x-2, y-2, x+2, y+2, outline="red", fill="red", tags="point")
+							self.points.append((x, y, point_id))
+
+							# Update the last captured point position
+							last_captured_x = x
+							last_captured_y = y
 
 
 
@@ -308,23 +321,27 @@ class GraphGrabberApp:
 		self.remove_point(x, y)
 		
 	def create_magnifier_window(self):
-		self.magnifier_window = tk.Toplevel(self.root)
-		self.magnifier_window.title("Magnifier")
-		self.magnifier_canvas = tk.Canvas(self.magnifier_window, width=200, height=200)
-		self.magnifier_canvas.pack()
-		
-		
-		# Create sliders for zoom_factor and magnifier_size
-		self.zoom_slider = tk.Scale(self.magnifier_window, from_=1, to=20, orient=tk.HORIZONTAL, label="Zoom Factor",
-									command=self.update_zoom_factor)
-		self.zoom_slider.set(self.zoom_factor)
-		self.zoom_slider.pack(side=tk.LEFT, padx=5)
+		if self.image:
+			self.magnifier_window = tk.Toplevel(self.root)
+			self.magnifier_window.title("Magnifier")
+			self.magnifier_canvas = tk.Canvas(self.magnifier_window, width=200, height=200)
+			self.magnifier_canvas.pack()
+			
+			
+			# Create sliders for zoom_factor and magnifier_size
+			self.zoom_slider = tk.Scale(self.magnifier_window, from_=1, to=20, orient=tk.HORIZONTAL, label="Zoom Factor",
+										command=self.update_zoom_factor)
+			self.zoom_slider.set(self.zoom_factor)
+			self.zoom_slider.pack(side=tk.LEFT, padx=5)
 
-		self.size_slider = tk.Scale(self.magnifier_window, from_=50, to=400, orient=tk.HORIZONTAL, label="Magnifier Size",
-									command=self.update_magnifier_size)
-		self.size_slider.set(self.magnifier_size)
-		self.size_slider.pack(side=tk.LEFT, padx=5)
+			self.size_slider = tk.Scale(self.magnifier_window, from_=50, to=400, orient=tk.HORIZONTAL, label="Magnifier Size",
+										command=self.update_magnifier_size)
+			self.size_slider.set(self.magnifier_size)
+			self.size_slider.pack(side=tk.LEFT, padx=5)
 		
+		else:
+			self.show_error("Please load an image first.", is_error=True)
+			
 		
 
 	def save_points(self):
@@ -570,7 +587,7 @@ class GraphGrabberApp:
 		self.update_magnifier(self.canvas.winfo_pointerx(), self.canvas.winfo_pointery())
 
 
-#if __name__ == "__main__":
-#    root = tk.Tk()
-#    app = GraphGrabberApp(root)
-#    root.mainloop()
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = GraphGrabberApp(root)
+    root.mainloop()
