@@ -104,10 +104,19 @@ class GraphGrabberApp:
 		self.magnifier_button.pack(side=tk.LEFT, padx=5, pady=5)
 
 
-		# Add a window to create detect curves by colors
-		self.color_capture_button = tk.Button(self.frame3, text="Auto Detect", command=self.select_color)
+		# Add a window to create detect curves by choosing from a color pannel
+		self.color_capture_button = tk.Button(self.frame3, text="Color Pannel", command=self.select_color)
 		self.color_capture_button.pack(side=tk.LEFT, padx=5, pady=5)
 		
+		# Add a window to create detect curves by clicking on the wanted color colors
+		self.color_capture_button = tk.Button(self.frame3, text="Auto Detect", command=self.click_desired_color)
+		self.color_capture_button.pack(side=tk.LEFT, padx=5, pady=5)
+		
+		
+		
+			
+			
+			
 		self.image = None
 		self.points = []
 		self.axis_points = {}
@@ -119,20 +128,46 @@ class GraphGrabberApp:
 		
 		
 	
+	
+	def click_desired_color(self):
+		# Activate color selection mode from the image
+		if self.image:
+			self.show_error("Click on the image to pick a color.", is_error=False)
+			self.canvas.bind("<Button-1>", self.pick_color_from_image)
+		else:
+			self.show_error("Please load an image first.", is_error=True)
+	
+	
+	def pick_color_from_image(self, event):
+		# Get the color from the clicked pixel
+		x, y = event.x, event.y
+		
+		pixel_color = self.image.getpixel((x, y))
+		if len(pixel_color) == 4:
+			pixel_color = pixel_color[:3]
+		
+		self.selected_color = pixel_color  # Store the selected color (RGB)
+
+		# Display the selected color
+		self.show_selected_color()
+
+		# Unbind the pick color function
+		self.canvas.unbind("<Button-1>")
+		
 
 
 	def select_color(self):
-		# Open color picker dialog
-		color = colorchooser.askcolor(title="Choose a color")
+		
+		if self.image:
+			# Open color picker dialog
+			color = colorchooser.askcolor(title="Choose a color")
 
-		if color[1] is not None:
-			self.selected_color = color[0]  # Store the selected color (RGB)
-			self.show_selected_color()	
-			
-			
-			
-
-
+			if color[1] is not None:
+				self.selected_color = color[0]  # Store the selected color (RGB)
+				self.show_selected_color()	
+				
+		else:
+			self.show_error("Please load an image first.", is_error=True)
 			
 			
 		
@@ -274,23 +309,27 @@ class GraphGrabberApp:
 		self.remove_point(x, y)
 		
 	def create_magnifier_window(self):
-		self.magnifier_window = tk.Toplevel(self.root)
-		self.magnifier_window.title("Magnifier")
-		self.magnifier_canvas = tk.Canvas(self.magnifier_window, width=200, height=200)
-		self.magnifier_canvas.pack()
-		
-		
-		# Create sliders for zoom_factor and magnifier_size
-		self.zoom_slider = tk.Scale(self.magnifier_window, from_=1, to=20, orient=tk.HORIZONTAL, label="Zoom Factor",
-									command=self.update_zoom_factor)
-		self.zoom_slider.set(self.zoom_factor)
-		self.zoom_slider.pack(side=tk.LEFT, padx=5)
+		if self.image:
+			self.magnifier_window = tk.Toplevel(self.root)
+			self.magnifier_window.title("Magnifier")
+			self.magnifier_canvas = tk.Canvas(self.magnifier_window, width=200, height=200)
+			self.magnifier_canvas.pack()
+			
+			
+			# Create sliders for zoom_factor and magnifier_size
+			self.zoom_slider = tk.Scale(self.magnifier_window, from_=1, to=20, orient=tk.HORIZONTAL, label="Zoom Factor",
+										command=self.update_zoom_factor)
+			self.zoom_slider.set(self.zoom_factor)
+			self.zoom_slider.pack(side=tk.LEFT, padx=5)
 
-		self.size_slider = tk.Scale(self.magnifier_window, from_=50, to=400, orient=tk.HORIZONTAL, label="Magnifier Size",
-									command=self.update_magnifier_size)
-		self.size_slider.set(self.magnifier_size)
-		self.size_slider.pack(side=tk.LEFT, padx=5)
+			self.size_slider = tk.Scale(self.magnifier_window, from_=50, to=400, orient=tk.HORIZONTAL, label="Magnifier Size",
+										command=self.update_magnifier_size)
+			self.size_slider.set(self.magnifier_size)
+			self.size_slider.pack(side=tk.LEFT, padx=5)
 		
+		else:
+			self.show_error("Please load an image first.", is_error=True)
+			
 		
 
 	def save_points(self):

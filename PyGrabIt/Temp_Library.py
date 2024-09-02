@@ -1,7 +1,8 @@
 import os 
 import tkinter as tk
 from tkinter import filedialog
-from PIL import Image, ImageTk
+from tkinter import colorchooser
+from PIL import Image, ImageTk, ImageDraw
 
 class COLORS:
 	def __enter__( self ):
@@ -67,7 +68,7 @@ class GraphGrabberApp:
 		self.reset_button = tk.Button(self.frame, text="Reset Points", command=self.reset_points)
 		self.reset_button.pack(side=tk.LEFT, padx=5)
 		
-		self.reset_calibration_button = tk.Button(self.frame, text="Reset Calibration", command=self.reset_calibration)
+		self.reset_calibration_button = tk.Button(self.frame, text="Reset Calibration", command=self.reset_calibration_button)
 		self.reset_calibration_button.pack(side=tk.LEFT, padx=5)
 		
 		
@@ -103,10 +104,19 @@ class GraphGrabberApp:
 		self.magnifier_button.pack(side=tk.LEFT, padx=5, pady=5)
 
 
-		# Add a window to create detect curves by colors
-		self.color_capture_button = tk.Button(self.frame3, text="Auto Detect", command=self.apply_auto_detect)
+		# Add a window to create detect curves by choosing from a color pannel
+		self.color_capture_button = tk.Button(self.frame3, text="Color Pannel", command=self.select_color)
 		self.color_capture_button.pack(side=tk.LEFT, padx=5, pady=5)
 		
+		# Add a window to create detect curves by clicking on the wanted color colors
+		self.color_capture_button = tk.Button(self.frame3, text="Auto Detect", command=self.click_desired_color)
+		self.color_capture_button.pack(side=tk.LEFT, padx=5, pady=5)
+		
+		
+		
+			
+			
+			
 		self.image = None
 		self.points = []
 		self.axis_points = {}
@@ -118,41 +128,140 @@ class GraphGrabberApp:
 		
 		
 	
-
-
-	def apply_auto_detect(self):
+	
+	def click_desired_color(self):
+		# Activate color selection mode from the image
 		if self.image:
-			# Example logic to detect and mark colors automatically
-			for x in range(0, self.tk_image.width(), 5):  # Adjust the step size as needed
-				for y in range(0, self.tk_image.height(), 5):
-					color = self.image.getpixel((x, y))  # Get pixel color
+			self.show_error("Click on the image to pick a color.", is_error=False)
+			self.canvas.bind("<Button-1>", self.pick_color_from_image)
+		else:
+			self.show_error("Please load an image first.", is_error=True)
+	
+	
+	def pick_color_from_image(self, event):
+		# Get the color from the clicked pixel
+		x, y = event.x, event.y
+		
+		pixel_color = self.image.getpixel((x, y))
+		if len(pixel_color) == 4:
+			pixel_color = pixel_color[:3]
+		
+		self.selected_color = pixel_color  # Store the selected color (RGB)
+
+		# Display the selected color
+		self.show_selected_color()
+
+		# Unbind the pick color function
+		self.canvas.unbind("<Button-1>")
+		
+
+	def select_color(self):
+		
+		if self.image:
+			# Open color picker dialog
+			color = colorchooser.askcolor(title="Choose a color")
+
+			if color[1] is not None:
+				self.selected_color = color[0]  # Store the selected color (RGB)
+				self.show_selected_color()	
+				
+		else:
+			self.show_error("Please load an image first.", is_error=True)
+			
+			
+		
+	def auto_capture(self):
+
+		# whenever you click capture, you first delete all points 
+		points_copy = self.points[:]
+		for px, py, point_id in points_copy:
+			self.canvas.delete(point_id)  # Remove the point from the canvas
+			self.points.remove((px, py, point_id))  # Remove the point from the list
+
+				
+		if not hasattr(self, 'selected_color') or self.selected_color is None:
+			print("No color selected.")
+			return
+		
+		# Get the selected color
+		target_color = self.selected_color
+		
+		# Convert the selected color to a format suitable for comparison
+		target_r, target_g, target_b = target_color
+		
+		# Create a copy of the image to work with
+		image_copy = self.image.copy()
+		width, height = image_copy.size
+				
+		# Define a threshold for color similarity
+		color_threshold = self.color_threshold_slider.get()  # Adjust this threshold as needed
+		
+		# Scan through all pixels in the image
+		for x in range(width):
+			for y in range(height):
+				pixel = image_copy.getpixel((x, y))
+				
+				if isinstance(pixel, tuple):
+					r, g, b = pixel[:3]
 					
-					# Define the color detection logic here
-					# For example, detecting a specific shade of red
-					if self.is_target_color(color):
+					# Calculate the color difference
+					color_diff = abs(r - target_r) + abs(g - target_g) + abs(b - target_b)
+					
+					# If the color difference is within the threshold, draw a red point
+					if color_diff < color_threshold:
 						point_id = self.canvas.create_oval(x-2, y-2, x+2, y+2, outline="red", fill="red", tags="point")
 						self.points.append((x, y, point_id))
+						
 
-	def is_target_color(self, color):
-		if len(color) == 4:
-			# RGBA format: discard the alpha channel
-			r, g, b, _ = color
-		elif len(color) == 3:
-			# RGB format
-			r, g, b = color
-		else:
-			raise ValueError("Unexpected color format")
 
-		# Define your target color or range
-		target_color = (255, 0, 0)  # Example target color (red)
-		tolerance = 30  # Example tolerance
 
-		# Check if the color matches the target color within the tolerance range
-		return (
-			abs(r - target_color[0]) <= tolerance and
-			abs(g - target_color[1]) <= tolerance and
-			abs(b - target_color[2]) <= tolerance
-		)
+		
+		
+	def show_selected_color(self):
+		# Display the selected color in a new window
+		self.selected_color_window = tk.Toplevel(self.root)
+		self.selected_color_window.title("Selected Color")
+
+		# Create a canvas to display the selected color
+		color_canvas = tk.Canvas(self.selected_color_window, width=100, height=100, bg=self.rgb_to_hex(self.selected_color))
+		color_canvas.pack(pady=20)
+		
+		
+		 # Color threshold slider
+		self.color_threshold_label = tk.Label(self.selected_color_window, text="Color Threshold:")
+		self.color_threshold_label.pack(side=tk.TOP, padx=5, pady=0)
+		self.color_threshold_slider = tk.Scale(self.selected_color_window, from_=0, to_=255, orient=tk.HORIZONTAL)
+		self.color_threshold_slider.set(50)  # Set initial value
+		self.color_threshold_slider.pack(side=tk.TOP, padx=5, pady=5)
+		
+		
+		# Delta X label and entry
+		self.Deltax_label = tk.Label(self.selected_color_window, text="Δ X:")
+		self.Deltax_label.pack(side=tk.LEFT, padx=5, pady=5)
+		self.Deltax_entry = tk.Entry(self.selected_color_window, width=5)
+		self.Deltax_entry.pack(side=tk.LEFT, padx=5, pady=5)
+		self.Deltax_entry.insert(0, "5")  # Insert default value of 5
+		
+		# Delta Y label and entry
+		self.Deltay_label = tk.Label(self.selected_color_window, text="Δ Y:")
+		self.Deltay_label.pack(side=tk.LEFT, padx=5, pady=5)
+		self.Deltay_entry = tk.Entry(self.selected_color_window, width=5)
+		self.Deltay_entry.pack(side=tk.LEFT, padx=5, pady=5)
+		self.Deltay_entry.insert(0, "5")  # Insert default value of 5
+		
+		# Auto Capture button
+		self.auto_capture_button = tk.Button(self.selected_color_window, text="Capture", command=self.auto_capture)
+		self.auto_capture_button.pack(side=tk.LEFT, padx=5)
+				
+		
+		
+		
+	@staticmethod
+	def rgb_to_hex(rgb):
+		# Convert RGB tuple to HEX format
+		return "#{:02x}{:02x}{:02x}".format(int(rgb[0]), int(rgb[1]), int(rgb[2]))
+
+
 	def load_image(self):
 		file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png *.jpg *.jpeg")])
 		if file_path:
@@ -169,6 +278,10 @@ class GraphGrabberApp:
 			self.canvas.bind("<Button-1>", self.on_click)
 			self.canvas.bind("<Button-3>", self.on_right_click)
 
+			
+
+
+		
 			self.image = Image.open(file_path)
 			self.tk_image = ImageTk.PhotoImage(self.image)
 			self.canvas.config(width=self.tk_image.width(), height=self.tk_image.height())
@@ -182,12 +295,24 @@ class GraphGrabberApp:
 
 			# Show the message to click on X0
 			self.show_error("Click on X0 to set the origin point.", is_error=False)
+			
+			# Create magnifier window
+			#if self.magnifier_window is None:
+			#	self.create_magnifier_window()
 				
+				
+
+
+	def on_right_click(self, event):
+		x, y = event.x, event.y
+		self.remove_point(x, y)
+		
 	def create_magnifier_window(self):
 		self.magnifier_window = tk.Toplevel(self.root)
 		self.magnifier_window.title("Magnifier")
 		self.magnifier_canvas = tk.Canvas(self.magnifier_window, width=200, height=200)
 		self.magnifier_canvas.pack()
+		
 		
 		# Create sliders for zoom_factor and magnifier_size
 		self.zoom_slider = tk.Scale(self.magnifier_window, from_=1, to=20, orient=tk.HORIZONTAL, label="Zoom Factor",
@@ -199,6 +324,8 @@ class GraphGrabberApp:
 									command=self.update_magnifier_size)
 		self.size_slider.set(self.magnifier_size)
 		self.size_slider.pack(side=tk.LEFT, padx=5)
+		
+		
 
 	def save_points(self):
 		if len(self.axis_points) < 4:
@@ -217,136 +344,233 @@ class GraphGrabberApp:
 		# Clear error message if values are valid
 		self.error_label.config(text="", fg="black")
 
-		# Ask the user where they want to save the .txt file
-		file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text files", "*.txt")])
+		# Ask the user for the save location and filename
+		file_path = filedialog.asksaveasfilename(
+			defaultextension=".txt",
+			filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+			title="Save Points As"
+		)
+		
 		if file_path:
-			with open(file_path, "w") as file:
-				file.write(f"X0: {x0}\nXmax: {xmax}\nY0: {y0}\nYmax: {ymax}\n")
-				file.write(f"X0: {self.axis_points['X0']}\nXmax: {self.axis_points['Xmax']}\nY0: {self.axis_points['Y0']}\nYmax: {self.axis_points['Ymax']}\n")
-				file.write("Captured Points:\n")
-				for point in self.points:
-					file.write(f"{point[0]}, {point[1]}\n")
+			try:
+				with open(file_path, "w") as file:
+					file.write("X Y\n")  # Write header labels
 
-	def on_mouse_move(self, event):
-		# Move horizontal and vertical lines with the cursor
-		if self.h_line:
-			self.canvas.delete(self.h_line)
-		if self.v_line:
-			self.canvas.delete(self.v_line)
-
-		self.h_line = self.canvas.create_line(0, event.y, self.canvas.winfo_width(), event.y, fill="blue")
-		self.v_line = self.canvas.create_line(event.x, 0, event.x, self.canvas.winfo_height(), fill="blue")
-
-		# Update the magnifier window
-		self.update_magnifier(event.x, event.y)
-		
-	def reset_points(self):
-		self.points = []
-		self.canvas.delete("point")
-		self.canvas.delete("selected_point")
-		if self.points_window:
-			self.points_window.destroy()
-		self.create_points_window()
-		
-	def reset_calibration(self):
-		self.axis_points = {}
-		self.axis_ranges_set = False
-		self.canvas.delete("axis_point")
-
-	def on_click(self, event):
-		# Handle clicks for setting axis points or capturing points
-		if len(self.axis_points) < 4:
-			self.set_axis_point(event)
-		else:
-			self.capture_point(event)
-
-	def set_axis_point(self, event):
-		axis_order = ["X0", "Xmax", "Y0", "Ymax"]
-		point_name = axis_order[len(self.axis_points)]
-		point_id = self.canvas.create_oval(event.x-3, event.y-3, event.x+3, event.y+3, outline="blue", fill="blue", tags="axis_point")
-		self.axis_points[point_name] = (event.x, event.y, point_id)
-
-		if len(self.axis_points) < 4:
-			self.show_error(f"Click on {axis_order[len(self.axis_points)]} to set the {point_name} point.", is_error=False)
-		else:
-			self.axis_ranges_set = True
-			self.show_error("", is_error=False)  # Clear the message
-
-		self.create_points_window()
-
-	def capture_point(self, event):
-		point_id = self.canvas.create_oval(event.x-2, event.y-2, event.x+2, event.y+2, outline="red", fill="red", tags="point")
-		self.points.append((event.x, event.y, point_id))
-		self.update_points_window()
-
-	def on_right_click(self, event):
-		# Detect and remove a clicked point
-		closest_point = self.canvas.find_closest(event.x, event.y)[0]
-		for i, (x, y, point_id) in enumerate(self.points):
-			if point_id == closest_point:
-				self.canvas.delete(point_id)
-				del self.points[i]
-				break
-		self.update_points_window()
-
-	def create_points_window(self):
-		# Create a window to display the captured points
-		if self.points_window:
-			self.points_window.destroy()
-
-		self.points_window = tk.Toplevel(self.root)
-		self.points_window.title("Captured Points")
-		self.points_canvas = tk.Canvas(self.points_window, width=300, height=200)
-		self.points_canvas.pack()
-
-		self.update_points_window()
-
-	def update_points_window(self):
-		# Update the points window with the current points
-		if not self.points_window or not self.points_canvas:
-			return
-
-		self.points_canvas.delete("all")  # Clear the previous points
-
-		for i, (x, y, _) in enumerate(self.points):
-			self.points_canvas.create_text(10, 10 + i * 20, anchor=tk.NW, text=f"Point {i+1}: ({x}, {y})")
+					for (x, y, id_points) in self.points:
+						# Convert pixel coordinates to graph coordinates
+						graph_x = x0 + (x / self.tk_image.width()) * (xmax - x0)
+						graph_y = y0 + ((self.tk_image.height() - y) / self.tk_image.height()) * (ymax - y0)
+						file.write(f"{graph_x:.4f} {graph_y:.4f}\n")
+				
+				self.show_error(f"Points saved to {file_path}", is_error=False)
+			except Exception as e:
+				self.show_error(f"Failed to save points: {str(e)}", is_error=True)
 
 	def show_error(self, message, is_error=True):
-		# Display an error or information message
-		self.error_label.config(text=message, fg="red" if is_error else "blue")
+		# Set the text color based on whether it is an error message
+		color = "red" if is_error else "blue"
+		self.error_label.config(text=message, fg=color)
 
-	def update_zoom_factor(self, val):
-		self.zoom_factor = int(val)
+	def on_click(self, event):
+		if self.image:
+			x = event.x
+			y = event.y
 
-	def update_magnifier_size(self, val):
-		self.magnifier_size = int(val)
+			if not self.axis_ranges_set:
+				if len(self.axis_points) < 4:
+					if len(self.axis_points) == 0:
+						label = 'X0'
+						self.show_error("Click on Xmax.", is_error=False)
+					elif len(self.axis_points) == 1:
+						label = 'Xmax'
+						self.show_error("Click on Y0.", is_error=False)
+					elif len(self.axis_points) == 2:
+						label = 'Y0'
+						self.show_error("Click on Ymax.", is_error=False)
+					elif len(self.axis_points) == 3:
+						label = 'Ymax'
+						self.axis_ranges_set = True
+						self.show_error("Axis points set. Now click on the points to capture.", is_error=False)
 
-	def update_magnifier(self, x, y):
-		# Update the magnifier window
-		if not self.magnifier_canvas or not self.image:
-			return
+					self.axis_points[label] = (x, y)
+					color = "blue" if label == 'X0' else "green" if label == 'Xmax' else "yellow" if label == 'Y0' else "orange"
+					self.canvas.create_oval(x-4, y-4, x+4, y+4, outline=color, fill=color, tags="axis")
+					self.canvas.create_text(x, y-10, text=label, fill=color, tags="axis")
+				else:
+					self.show_points_window()
+			else:
+				# Add point to the list and draw it
+				point_id = self.canvas.create_oval(x-2, y-2, x+2, y+2, outline="red", fill="red", tags="point")
+				self.points.append((x, y, point_id))
+				
 
-		left = max(0, x - self.magnifier_size // 2)
-		top = max(0, y - self.magnifier_size // 2)
-		right = min(self.image.width, x + self.magnifier_size // 2)
-		bottom = min(self.image.height, y + self.magnifier_size // 2)
+					
+				if self.points_window is None:
+					self.show_points_window()
+				
+				## Draw the point on the secondary window as well
+				#if self.points_window:
+				#	self.points_canvas.create_oval(x-2, y-2, x+2, y+2, outline="red", fill="red", tags="point")
 
-		cropped_image = self.image.crop((left, top, right, bottom))
-		resized_image = cropped_image.resize((self.magnifier_size * self.zoom_factor, self.magnifier_size * self.zoom_factor), Image.ANTIALIAS)
-		tk_resized_image = ImageTk.PhotoImage(resized_image)
+	def remove_point(self, x, y):
+		# Make a copy of the points list to avoid modifying it while iterating
+		points_copy = self.points[:]
+		for px, py, point_id in points_copy:
+			if abs(px - x) < 5 and abs(py - y) < 5:  # Check if click is near the point
+				self.canvas.delete(point_id)  # Remove the point from the canvas
+				self.points.remove((px, py, point_id))  # Remove the point from the list
+				break
+				
+	def reset_points(self):
+		# Clear the points list and remove drawn red points from the main canvas
+		self.points = []
+		self.canvas.delete("point")  # Delete all items with tag "point"
 
-		self.magnifier_canvas.create_image(0, 0, anchor=tk.NW, image=tk_resized_image)
-		self.magnifier_canvas.image = tk_resized_image  # Keep a reference to prevent garbage collection
+		# If the points window exists, also clear points there
+		if self.points_window:
+			self.points_canvas.delete("point")  # Delete all items with tag "point"
+
+		# Clear any previous error messages
+		self.error_label.config(text="")
+		self.show_error("Point reset. Now click on new points to capture.", is_error=False)
+		
+	
+	def reset_calibration_button(self):
+		self.axis_points = {}
+		self.axis_ranges_set = False
+
+		# Clear axis markers on the main canvas
+		self.canvas.delete("axis")
+
+		# Clear axis markers on the secondary canvas if it exists
+		if self.points_window:
+			self.points_canvas.delete("axis")
+
+		# Clear axis range entries
+		self.x0_entry.delete(0, tk.END)
+		self.xmax_entry.delete(0, tk.END)
+		self.y0_entry.delete(0, tk.END)
+		self.ymax_entry.delete(0, tk.END)
+		
+		self.show_error("Calibration reset. Click to set X0.", is_error=False)
+
+		
+		
+		
+		
+
+	def show_points_window(self):
+		a = 1
+		'''
+		if self.points_window is None:
+			# Get the dimensions and position of the main window
+			main_window_x = self.root.winfo_rootx()
+			main_window_y = self.root.winfo_rooty()
+			main_window_width = self.root.winfo_width()
+			main_window_height = self.root.winfo_height()
+
+			# Create a new window to show clicked points
+			self.points_window = tk.Toplevel(self.root)
+			self.points_window.title("Captured Points")
+			
+			# Create a blank canvas (no image) in the secondary window
+			self.points_canvas = tk.Canvas(self.points_window, bg="white", width=self.tk_image.width(), height=self.tk_image.height())
+			self.points_canvas.pack()
+
+			# Draw the axis markers on the secondary canvas
+			for label, (x, y) in self.axis_points.items():
+				color = "blue" if label == 'X0' else "green" if label == 'Xmax' else "yellow" if label == 'Y0' else "orange"
+				self.points_canvas.create_oval(x-4, y-4, x+4, y+4, outline=color, fill=color, tags="axis")
+				self.points_canvas.create_text(x, y-10, text=label, fill=color, tags="axis")
+			
+			# Position the new window to the right of the main window
+			new_window_x = main_window_x + main_window_width
+			new_window_y = main_window_y
+			self.points_window.geometry(f"{self.tk_image.width()}x{self.tk_image.height()}+{new_window_x}+{new_window_y}")
+		'''
+
+	def on_mouse_move(self, event):
+		x, y = event.x, event.y
+		self.canvas.delete(self.h_line)
+		self.canvas.delete(self.v_line)
+		self.h_line = self.canvas.create_line(0, y, self.canvas.winfo_width(), y, fill='gray', dash=(2, 2))
+		self.v_line = self.canvas.create_line(x, 0, x, self.canvas.winfo_height(), fill='gray', dash=(2, 2))
+		
+		if self.image and self.magnifier_window:
+			self.update_magnifier(event.x, event.y)
 
 	def hide_cursor(self, event):
 		self.canvas.config(cursor="none")
 
 	def show_cursor(self, event):
-		self.canvas.config(cursor="arrow")
+		self.canvas.config(cursor="")
+		
+	
+	def update_magnifier(self, x, y):
+		zoom_factor = self.zoom_factor
+		magnifier_size = self.magnifier_size
+		
+		x_min = max(0, x - magnifier_size // 2 // zoom_factor)
+		y_min = max(0, y - magnifier_size // 2 // zoom_factor)
+		x_max = min(self.image.width, x_min + magnifier_size // zoom_factor)
+		y_max = min(self.image.height, y_min + magnifier_size // zoom_factor)
+		
+		
+		
+		zoomed_image = self.image.crop((x_min, y_min, x_max, y_max)).resize((magnifier_size, magnifier_size), Image.LANCZOS)
+		self.tk_zoomed_image = ImageTk.PhotoImage(zoomed_image)
+		
+		self.magnifier_canvas.delete("all")
+		self.magnifier_canvas.create_image(0, 0, anchor=tk.NW, image=self.tk_zoomed_image)
 
 
-if __name__ == "__main__":
-	with COLORS:
-		root = tk.Tk()
-		app = GraphGrabberApp(root)
-		root.mainloop()
+
+	
+		# Draw horizontal and vertical lines in the middle of the magnifier
+		center_x = magnifier_size // 2
+		center_y = magnifier_size // 2
+		line_color = "black"  # Choose a color for the lines
+
+		self.magnifier_canvas.create_line(0, center_y, magnifier_size, center_y, fill=line_color, dash=(2, 2))
+		self.magnifier_canvas.create_line(center_x, 0, center_x, magnifier_size, fill=line_color, dash=(2, 2))
+	
+		# Draw captured points on the magnifier canvas
+		if self.points:
+			for (px, py, point_id) in self.points:
+				# Transform points to magnifier coordinates
+				mag_x = (px - x_min) * magnifier_size // (x_max - x_min)
+				mag_y = (py - y_min) * magnifier_size // (y_max - y_min)
+				self.magnifier_canvas.create_oval(mag_x-2, mag_y-2, mag_x+2, mag_y+2, outline="red", fill="red", tags="point")
+			
+	
+		# Draw calibration points on the magnifier canvas
+		if self.axis_points:
+			for label, (px, py) in self.axis_points.items():
+				# Transform points to magnifier coordinates
+				mag_x = (px - x_min) * magnifier_size // (x_max - x_min)
+				mag_y = (py - y_min) * magnifier_size // (y_max - y_min)
+				color = "blue" if label == 'X0' else "green" if label == 'Xmax' else "yellow" if label == 'Y0' else "orange"
+				self.magnifier_canvas.create_oval(mag_x-4, mag_y-4, mag_x+4, mag_y+4, outline=color, fill=color, tags="axis")
+				self.magnifier_canvas.create_text(mag_x, mag_y-10, text=label, fill=color, tags="axis")
+		
+		
+
+
+	def update_zoom_factor(self, value):
+		self.zoom_factor = int(value)
+		if self.magnifier_canvas:
+			# Trigger a redraw of the magnifier with the new zoom factor
+			self.update_magnifier(self.canvas.winfo_pointerx() - self.canvas.winfo_rootx(), self.canvas.winfo_pointery() - self.canvas.winfo_rooty())
+
+		#self.update_magnifier(self.canvas.winfo_pointerx(), self.canvas.winfo_pointery())
+
+	def update_magnifier_size(self, value):
+		self.magnifier_size = int(value)
+		self.magnifier_canvas.config(width=self.magnifier_size, height=self.magnifier_size)
+		self.update_magnifier(self.canvas.winfo_pointerx(), self.canvas.winfo_pointery())
+
+
+#if __name__ == "__main__":
+#    root = tk.Tk()
+#    app = GraphGrabberApp(root)
+#    root.mainloop()
