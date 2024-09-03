@@ -112,6 +112,9 @@ class GraphGrabberApp:
 		self.color_capture_button = tk.Button(self.frame3, text="Auto Detect", command=self.click_desired_color)
 		self.color_capture_button.pack(side=tk.LEFT, padx=5, pady=5)
 		
+		# Add a window to create detect curves by clicking on the wanted color colors
+		self.data_fit_button = tk.Button(self.frame3, text="Fit Data", command=self.fit_data)
+		self.data_fit_button.pack(side=tk.LEFT, padx=5, pady=5)
 		
 		
 			
@@ -128,6 +131,19 @@ class GraphGrabberApp:
 		
 		
 	
+	def fit_data(self):
+		if self.image:
+			self.data_fit_window = tk.Toplevel(self.root)
+			self.data_fit_window.title("Fit data")
+			
+			self.fitting_models = tk.Label(self.data_fit_window, text="Coming soon...")
+			self.fitting_models.pack(side=tk.LEFT, padx=5, pady=5)
+		
+
+		else:
+			self.show_error("Please load an image first.", is_error=True)
+			
+			
 	
 	def click_desired_color(self):
 		# Activate color selection mode from the image
