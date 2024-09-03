@@ -54,8 +54,6 @@ class GraphGrabberApp:
 		self.error_label = tk.Label(root, text="", fg="red", font=("Helvetica", 10))
 		self.error_label.pack(pady=5)
 		
-		
-
 		self.frame = tk.Frame(root)
 		self.frame.pack(fill=tk.X)
 
@@ -113,10 +111,7 @@ class GraphGrabberApp:
 		self.color_capture_button.pack(side=tk.LEFT, padx=5, pady=5)
 		
 		
-		
-			
-			
-			
+
 		self.image = None
 		self.points = []
 		self.axis_points = {}
@@ -196,11 +191,10 @@ class GraphGrabberApp:
 		color_threshold = self.color_threshold_slider.get()  # Adjust this threshold as needed
 
 		# Define DeltaX and DeltaY
-		DeltaX = int(self.Deltax_entry.get())  # Adjust this value as needed
-		DeltaY = int(self.Deltay_entry.get())  # Adjust this value as needed
-		
-		print(DeltaX)
-		
+		DeltaX = int( self.Deltax_entry.get() )  # Adjust this value as needed
+		DeltaY = int( self.Deltay_entry.get() )  # Adjust this value as needed
+
+	
 		# Initialize the last captured point position
 		last_captured_x = -DeltaX
 		last_captured_y = -DeltaY
@@ -291,10 +285,7 @@ class GraphGrabberApp:
 			self.canvas.bind("<Button-1>", self.on_click)
 			self.canvas.bind("<Button-3>", self.on_right_click)
 
-			
 
-
-		
 			self.image = Image.open(file_path)
 			self.tk_image = ImageTk.PhotoImage(self.image)
 			self.canvas.config(width=self.tk_image.width(), height=self.tk_image.height())

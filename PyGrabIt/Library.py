@@ -1,7 +1,9 @@
 import os 
 import tkinter as tk
+from tkinter import ttk
 from tkinter import filedialog
 from tkinter import colorchooser
+
 from PIL import Image, ImageTk, ImageDraw
 
 class COLORS:
@@ -117,9 +119,6 @@ class GraphGrabberApp:
 		self.data_fit_button.pack(side=tk.LEFT, padx=5, pady=5)
 		
 		
-			
-			
-			
 		self.image = None
 		self.points = []
 		self.axis_points = {}
@@ -130,15 +129,62 @@ class GraphGrabberApp:
 		self.points_canvas = None
 		
 		
+	def perform_fit(self):
+		import numpy as np
+		import matplotlib.pyplot as plt
+		
+		# Example captured data (replace with your actual data)
+		print(self.points)
+		if self.points:
+			
+			x_data = [x for x, _, _ in self.points]  
+			y_data = [y for _, y, _ in self.points]  
+			
+			print(np.shape(x_data))
+			print(x_data)
+			
+			# Get the selected polynomial degree
+			degree = int(self.degree_var.get())
+			
+			# Fit the data with a polynomial of the selected degree
+			coefficients = np.polyfit(x_data, y_data, degree)
+			polynomial = np.poly1d(coefficients)
+			
+			# Generate x values for plotting the polynomial
+			x_fit = np.linspace(min(x_data), max(x_data), 500)
+			y_fit = polynomial(x_fit)
+			
+			# Plot the data and the polynomial fit
+			plt.figure()
+			plt.plot(x_data, y_data, 'bo', label='Data Points')
+			plt.plot(x_fit, y_fit, 'r-', label=f'{degree} Degree Polynomial Fit')
+			plt.xlabel('X Pixels')
+			plt.ylabel('Y Pixels')
+			plt.title(f'{degree} Degree Polynomial Fit')
+			plt.legend()
+			plt.show()
+			
+		else:
+			self.show_error("No points detected.", is_error=True)
+			
 	
 	def fit_data(self):
 		if self.image:
 			self.data_fit_window = tk.Toplevel(self.root)
 			self.data_fit_window.title("Fit data")
 			
-			self.fitting_models = tk.Label(self.data_fit_window, text="Coming soon...")
-			self.fitting_models.pack(side=tk.LEFT, padx=5, pady=5)
+			#self.fitting_models = tk.Label(self.data_fit_window, text="Coming soon...")
+			#self.fitting_models.pack(side=tk.LEFT, padx=5, pady=5)
+			
+			##
+			tk.Label(self.data_fit_window, text="Select polynomial degree:").pack(side=tk.LEFT, padx=5, pady=5)
+			self.degree_var = tk.StringVar(value="1")
+			self.degree_entry = tk.Entry(self.data_fit_window, textvariable=self.degree_var)
+			self.degree_entry.pack(side=tk.LEFT, padx=5, pady=5)
 		
+			self.fit_button = tk.Button(self.data_fit_window, text="Fit Data", command=self.perform_fit)
+			self.fit_button.pack(side=tk.LEFT, padx=5, pady=5)
+			##
 
 		else:
 			self.show_error("Please load an image first.", is_error=True)
@@ -604,6 +650,6 @@ class GraphGrabberApp:
 
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = GraphGrabberApp(root)
-    root.mainloop()
+	root = tk.Tk()
+	app = GraphGrabberApp(root)
+	root.mainloop()
