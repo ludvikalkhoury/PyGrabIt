@@ -133,15 +133,33 @@ class GraphGrabberApp:
 		import numpy as np
 		import matplotlib.pyplot as plt
 		
-		# Example captured data (replace with your actual data)
-		print(self.points)
-		if self.points:
+		if self.points and len(self.axis_points) == 4:
+			try:
+				# Get axis calibration values
+				x0_graph = float(self.x0_entry.get())
+				xmax_graph = float(self.xmax_entry.get())
+				y0_graph = float(self.y0_entry.get())
+				ymax_graph = float(self.ymax_entry.get())
+			except ValueError:
+				self.show_error("Invalid axis values. Please enter valid numbers for X0, Xmax, Y0, and Ymax.", is_error=True)
+				return
+
+			# Extract pixel coordinates of the axis calibration points
+			x0_pixel, y0_pixel = self.axis_points['X0']
+			xmax_pixel, _ = self.axis_points['Xmax']
+			_, y0_pixel = self.axis_points['Y0']  # Access only the Y component for Y0
+			_, ymax_pixel = self.axis_points['Ymax']  # Access only the Y component for Ymax
+
+			# Convert pixel coordinates to graph coordinates
+			x_data = []
+			y_data = []
 			
-			x_data = [x for x, _, _ in self.points]  
-			y_data = [y for _, y, _ in self.points]  
-			
-			print(np.shape(x_data))
-			print(x_data)
+			for x_pixel, y_pixel, _ in self.points:
+				# Transform pixel coordinates to graph coordinates
+				x_graph = x0_graph + ((x_pixel - x0_pixel) / (xmax_pixel - x0_pixel)) * (xmax_graph - x0_graph)
+				y_graph = y0_graph + ((y_pixel - y0_pixel) / (ymax_pixel - y0_pixel)) * (ymax_graph - y0_graph)
+				x_data.append(x_graph)
+				y_data.append(y_graph)
 			
 			# Get the selected polynomial degree
 			degree = int(self.degree_var.get())
@@ -153,20 +171,56 @@ class GraphGrabberApp:
 			# Generate x values for plotting the polynomial
 			x_fit = np.linspace(min(x_data), max(x_data), 500)
 			y_fit = polynomial(x_fit)
+
+			# Calculate the predicted values for x_data and the RMSE
+			y_pred = polynomial(x_data)
+			rmse = np.sqrt(np.mean((np.array(y_data) - np.array(y_pred))**2))
+			
+			# Generate the polynomial equation in LaTeX format
+			equation_parts = [f"{coeff:.3f}x^{{{deg}}}" if deg > 1 else (f"{coeff:.3f}x" if deg == 1 else f"{coeff:.3f}")
+						  for coeff, deg in zip(coefficients, range(degree, -1, -1))]
+		
+			# Group the terms into lines of 6 terms each
+			equation_lines = [" + ".join(equation_parts[i:i + 6]) for i in range(0, len(equation_parts), 6)]
+			equation = "y = " + "\n".join(equation_lines)
+			
+			# Create a new window to display the equation and RMSE
+			result_window = tk.Toplevel(self.root)
+			result_window.title("Fitted Equation and RMSE")
+			
+			# Create a label to display the equation
+			equation_label = tk.Label(result_window, text=f"Fitted Polynomial Equation:\n{equation}", font=("Helvetica", 12))
+			equation_label.pack(pady=10)
+			
+			# Create a label to display the RMSE
+			rmse_label = tk.Label(result_window, text=f"Root Mean Squared Error (RMSE): {rmse:.4f}", font=("Helvetica", 12))
+			rmse_label.pack(pady=10)
+			
+			# Add an OK button to close the window
+			ok_button = tk.Button(result_window, text="OK", command=result_window.destroy)
+			ok_button.pack(pady=10)
 			
 			# Plot the data and the polynomial fit
 			plt.figure()
-			plt.plot(x_data, y_data, 'bo', label='Data Points')
-			plt.plot(x_fit, y_fit, 'r-', label=f'{degree} Degree Polynomial Fit')
-			plt.xlabel('X Pixels')
-			plt.ylabel('Y Pixels')
-			plt.title(f'{degree} Degree Polynomial Fit')
+			plt.plot(x_data, y_data, 'bo', label='Captured Points (Graph Coordinates)')
+			plt.plot(x_fit, y_fit, 'r-', label=f'{degree}-Degree Polynomial Fit')
+			plt.xlabel('X (Graph Coordinates)')
+			plt.ylabel('Y (Graph Coordinates)')
+			plt.title(f'{degree}-Degree Polynomial Fit')
 			plt.legend()
 			plt.show()
-			
+
 		else:
-			self.show_error("No points detected.", is_error=True)
-			
+			self.show_error("No points or calibration points detected.", is_error=True)
+
+
+
+
+
+
+
+
+
 	
 	def fit_data(self):
 		if self.image:
