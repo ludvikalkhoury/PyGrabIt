@@ -15,7 +15,7 @@ class COLORS:
 COLORS = COLORS()
 
 class GraphGrabberApp:
-	Version = "0.0.9"
+	Version = "0.0.10"
 	
 	def __init__(self, root):
 		
