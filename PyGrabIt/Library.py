@@ -15,7 +15,7 @@ class COLORS:
 COLORS = COLORS()
 
 class GraphGrabberApp:
-	Version = "0.0.8"
+	Version = "0.0.9"
 	
 	def __init__(self, root):
 		
@@ -107,7 +107,7 @@ class GraphGrabberApp:
 
 
 		# Add a window to create detect curves by choosing from a color pannel
-		self.color_capture_button = tk.Button(self.frame3, text="Color Pannel", command=self.select_color)
+		self.color_capture_button = tk.Button(self.frame3, text="Color Panel", command=self.select_color)
 		self.color_capture_button.pack(side=tk.LEFT, padx=5, pady=5)
 		
 		# Add a window to create detect curves by clicking on the wanted color colors

@@ -21,7 +21,7 @@ long_description = (HERE2 / "long_description.txt").read_text()
 
 setup_args = dict(name='PyGrabIt',
 package_dir={ '' : package_dir },
-	  version='0.0.8', # @VERSION_INFO@
+	  version='0.0.9', # @VERSION_INFO@
 	  description='Python implementation of grabit toolbox.',
 	  long_description=long_description,
 	  url='https://github.com/ludvikalkhoury/PyGrabIt.git',
