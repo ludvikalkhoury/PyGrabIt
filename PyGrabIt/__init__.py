@@ -1,3 +1,3 @@
 from .Library import GraphGrabberApp
 
-__version__ = GraphGrabberApp.Version
+__version__ = GraphGrabberApp.version

@@ -19,9 +19,25 @@ HERE2 = pathlib.Path(__file__).parent
 
 long_description = (HERE2 / "long_description.txt").read_text()
 
+
+
+def get_version():
+	version_file = os.path.join(os.path.dirname(__file__), 'PyGrabIt', 'Library.py')
+	with open(version_file, 'r') as f:
+		for line in f:
+			if line.strip().startswith('version'):
+				# Extract the version from the line, e.g., 'versions = "0.0.11"'
+				version = line.split('=')[-1].strip().strip('"')
+				print('Version ' + version)
+				return version
+				
+	raise ValueError("Version not found in PyGrabIt/Library.py")
+
+
+
 setup_args = dict(name='PyGrabIt',
 package_dir={ '' : package_dir },
-	  version='0.0.10', # @VERSION_INFO@
+	  version=get_version(), # @VERSION_INFO@
 	  description='Python implementation of grabit toolbox.',
 	  long_description=long_description,
 	  url='https://github.com/ludvikalkhoury/PyGrabIt.git',
@@ -36,7 +52,7 @@ if __name__ == '__main__' and getattr( sys, 'argv', [] )[ 1: ]:
 else:
 	sys.stderr.write( """
 The `PyGrabIt` setup.py file should not be run or imported directly.
-Instead, it is used as follows::
+Instead, it is used as follows:
 
 	python -m pip install -e  "%s"
 

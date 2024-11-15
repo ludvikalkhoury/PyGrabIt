@@ -15,10 +15,9 @@ class COLORS:
 COLORS = COLORS()
 
 class GraphGrabberApp:
-	Version = "0.0.10"
+	version = "0.0.11"
 	
 	def __init__(self, root):
-		
 		
 		self.h_line = None
 		self.v_line = None
@@ -64,6 +63,9 @@ class GraphGrabberApp:
 		self.load_button = tk.Button(self.frame, text="Load Image", command=self.load_image)
 		self.load_button.pack(side=tk.LEFT, padx=5)
 
+		self.view_point_button = tk.Button(self.frame, text="View Points", command=self.view_points)
+		self.view_point_button.pack(side=tk.LEFT, padx=5)
+		
 		self.save_button = tk.Button(self.frame, text="Save Points", command=self.save_points)
 		self.save_button.pack(side=tk.LEFT, padx=5)
 		
@@ -118,6 +120,11 @@ class GraphGrabberApp:
 		self.data_fit_button = tk.Button(self.frame3, text="Fit Data", command=self.fit_data)
 		self.data_fit_button.pack(side=tk.LEFT, padx=5, pady=5)
 		
+		self.frame4 = tk.Frame(root)
+		self.frame4.pack(side=tk.RIGHT, fill=tk.X, padx=20, pady=0)
+		self.bottom_text_label = tk.Label(self.frame4, text="Version  "+str(self.version), font=("Helvetica", 8, "bold"), fg="blue", anchor="e")
+		self.bottom_text_label.pack()
+
 		
 		self.image = None
 		self.points = []
@@ -127,8 +134,61 @@ class GraphGrabberApp:
 		# Create a separate window to display points
 		self.points_window = None
 		self.points_canvas = None
+	
+	
+	def view_points(self):
+		if len(self.axis_points) < 4:
+			self.show_error("Please click on all four axis points and assign values first.", is_error=True)
+			return
 		
+		try:
+			# Assuming axis values are already assigned to self.x0, self.xmax, self.y0, self.ymax
+			x0 = float(self.x0_entry.get())
+			xmax = float(self.xmax_entry.get())
+			y0 = float(self.y0_entry.get())
+			ymax = float(self.ymax_entry.get())
+		except ValueError:
+			self.show_error("Invalid axis values. Please enter valid numbers for X0, Xmax, Y0, and Ymax.", is_error=True)
+			return
 		
+		# Clear error message if values are valid
+		self.error_label.config(text="", fg="black")
+
+		if not self.points:
+			self.show_error("No points to view.", is_error=True)
+			return
+		
+		# Create a new window to display the points
+		points_window = tk.Toplevel(self.root)
+		points_window.title("Captured Points")
+
+		# Set up the frame for displaying points
+		points_frame = tk.Frame(points_window)
+		points_frame.pack(padx=10, pady=10)
+
+		# Header for points table
+		header = tk.Label(points_frame, text="X (px)\tY (px)\tGraph X\tGraph Y", font=("Helvetica", 12, "bold"))
+		header.grid(row=0, column=0, padx=5, pady=5)
+
+		# Display the captured points
+		for i, (x, y, _) in enumerate(self.points, 1):
+			# Convert pixel coordinates to graph coordinates
+			calib_x0, _ = self.axis_points['X0']
+			calib_xmax, _ = self.axis_points['Xmax']
+			_, calib_y0 = self.axis_points['Y0']  # Access only the Y component for Y0
+			_, calib_ymax = self.axis_points['Ymax']  # Access only the Y component for Ymax
+
+			graph_x = x0 + ((x - calib_x0) / (calib_xmax - calib_x0)) * (xmax - x0)
+			graph_y = y0 + ((y - calib_y0) / (calib_ymax - calib_y0)) * (ymax - y0)
+
+			# Display the points with graph coordinates
+			point_label = tk.Label(points_frame, text=f"{x}\t{y}\t{graph_x:.4f}\t{graph_y:.4f}")
+			point_label.grid(row=i, column=0, padx=5, pady=5)
+
+		# Add a close button
+		close_button = tk.Button(points_window, text="Close", command=points_window.destroy)
+		close_button.pack(pady=10)
+
 	def perform_fit(self):
 		import numpy as np
 		import matplotlib.pyplot as plt
@@ -145,7 +205,7 @@ class GraphGrabberApp:
 				return
 
 			# Extract pixel coordinates of the axis calibration points
-			x0_pixel, y0_pixel = self.axis_points['X0']
+			x0_pixel, _ = self.axis_points['X0']
 			xmax_pixel, _ = self.axis_points['Xmax']
 			_, y0_pixel = self.axis_points['Y0']  # Access only the Y component for Y0
 			_, ymax_pixel = self.axis_points['Ymax']  # Access only the Y component for Ymax
@@ -491,8 +551,17 @@ class GraphGrabberApp:
 
 					for (x, y, id_points) in self.points:
 						# Convert pixel coordinates to graph coordinates
-						graph_x = x0 + (x / self.tk_image.width()) * (xmax - x0)
-						graph_y = y0 + ((self.tk_image.height() - y) / self.tk_image.height()) * (ymax - y0)
+						#graph_x = x0 + (x / self.tk_image.width()) * (xmax - x0)
+						#graph_y = y0 + ((self.tk_image.height() - y) / self.tk_image.height()) * (ymax - y0)
+						calib_x0, _ = self.axis_points['X0']
+						calib_xmax, _ = self.axis_points['Xmax']
+						_, calib_y0 = self.axis_points['Y0']  # Access only the Y component for Y0
+						_, calib_ymax = self.axis_points['Ymax']  # Access only the Y component for Ymax
+						
+						graph_x = x0 + ((x - calib_x0) / (calib_xmax - calib_x0)) * (xmax - x0)
+						graph_y = y0 + ((y - calib_y0) / (calib_ymax - calib_y0)) * (ymax - y0)
+
+						
 						file.write(f"{graph_x:.4f} {graph_y:.4f}\n")
 				
 				self.show_error(f"Points saved to {file_path}", is_error=False)
@@ -561,6 +630,8 @@ class GraphGrabberApp:
 
 		# If the points window exists, also clear points there
 		if self.points_window:
+			self.points_window.destroy()
+			self.points_window = None
 			self.points_canvas.delete("point")  # Delete all items with tag "point"
 
 		# Clear any previous error messages
