@@ -136,10 +136,34 @@ class GraphGrabberApp:
 		self.points_canvas = None
 	
 	
+	
 	def view_points(self):
+		# Validate axis points
 		if len(self.axis_points) < 4:
 			self.show_error("Please click on all four axis points and assign values first.", is_error=True)
 			return
+
+		# Validate points
+		if not self.points:
+			self.show_error("No points to view.", is_error=True)
+			return
+
+		# Create the points window if not already open
+		if not (self.points_window and self.points_window.winfo_exists()):
+			self.points_window = tk.Toplevel(self.root)
+			self.points_window.title("Captured Points")
+
+		# Create or refresh points view
+		self.create_points_view(self.points_window)
+
+	def create_points_view(self, points_window):
+		# Set up the frame for displaying points
+		points_frame = tk.Frame(points_window)
+		points_frame.pack(padx=10, pady=10)
+
+		# Header for points table
+		header = tk.Label(points_frame, text="Graph X\tGraph Y", font=("Helvetica", 12, "bold"))
+		header.grid(row=0, column=0, padx=5, pady=5)
 		
 		try:
 			# Assuming axis values are already assigned to self.x0, self.xmax, self.y0, self.ymax
@@ -149,45 +173,37 @@ class GraphGrabberApp:
 			ymax = float(self.ymax_entry.get())
 		except ValueError:
 			self.show_error("Invalid axis values. Please enter valid numbers for X0, Xmax, Y0, and Ymax.", is_error=True)
-			return
-		
-		# Clear error message if values are valid
-		self.error_label.config(text="", fg="black")
-
-		if not self.points:
-			self.show_error("No points to view.", is_error=True)
-			return
-		
-		# Create a new window to display the points
-		points_window = tk.Toplevel(self.root)
-		points_window.title("Captured Points")
-
-		# Set up the frame for displaying points
-		points_frame = tk.Frame(points_window)
-		points_frame.pack(padx=10, pady=10)
-
-		# Header for points table
-		header = tk.Label(points_frame, text="X (px)\tY (px)\tGraph X\tGraph Y", font=("Helvetica", 12, "bold"))
-		header.grid(row=0, column=0, padx=5, pady=5)
-
+			
 		# Display the captured points
 		for i, (x, y, _) in enumerate(self.points, 1):
-			# Convert pixel coordinates to graph coordinates
-			calib_x0, _ = self.axis_points['X0']
-			calib_xmax, _ = self.axis_points['Xmax']
-			_, calib_y0 = self.axis_points['Y0']  # Access only the Y component for Y0
-			_, calib_ymax = self.axis_points['Ymax']  # Access only the Y component for Ymax
+			calib_x0, _ = self.axis_points["X0"]
+			calib_xmax, _ = self.axis_points["Xmax"]
+			_, calib_y0 = self.axis_points["Y0"]
+			_, calib_ymax = self.axis_points["Ymax"]
 
 			graph_x = x0 + ((x - calib_x0) / (calib_xmax - calib_x0)) * (xmax - x0)
 			graph_y = y0 + ((y - calib_y0) / (calib_ymax - calib_y0)) * (ymax - y0)
 
-			# Display the points with graph coordinates
-			point_label = tk.Label(points_frame, text=f"{x}\t{y}\t{graph_x:.4f}\t{graph_y:.4f}")
+			point_label = tk.Label(points_frame, text=f"{graph_x:.4f}\t{graph_y:.4f}")
 			point_label.grid(row=i, column=0, padx=5, pady=5)
 
-		# Add a close button
+		# Add a close button if not already present
 		close_button = tk.Button(points_window, text="Close", command=points_window.destroy)
 		close_button.pack(pady=10)
+		
+
+
+
+	def update_view_points(self):
+		# Check if the points window exists and is open
+		if self.points_window and self.points_window.winfo_exists():
+			# Clear the current content of the points window
+			for widget in self.points_window.winfo_children():
+				widget.destroy()
+
+			# Recreate the points view inside the existing window
+			self.create_points_view(self.points_window)
+
 
 	def perform_fit(self):
 		import numpy as np
@@ -613,6 +629,11 @@ class GraphGrabberApp:
 				## Draw the point on the secondary window as well
 				#if self.points_window:
 				#	self.points_canvas.create_oval(x-2, y-2, x+2, y+2, outline="red", fill="red", tags="point")
+		
+		# Refresh the points view window
+		self.update_view_points()
+	
+	
 
 	def remove_point(self, x, y):
 		# Make a copy of the points list to avoid modifying it while iterating
@@ -626,17 +647,22 @@ class GraphGrabberApp:
 	def reset_points(self):
 		# Clear the points list and remove drawn red points from the main canvas
 		self.points = []
-		self.canvas.delete("point")  # Delete all items with tag "point"
+		# Delete all items with tag "point" from the main canvas
+		self.canvas.delete("point")  
 
-		# If the points window exists, also clear points there
+		# If the points window exists, clear it and reset its state
 		if self.points_window:
-			self.points_window.destroy()
-			self.points_window = None
-			self.points_canvas.delete("point")  # Delete all items with tag "point"
+			self.points_window.destroy()  # Destroy the points window
+			self.points_window = None  # Reset the reference to None
+			
+			# Check if points_canvas exists and clear it
+			if hasattr(self, 'points_canvas') and self.points_canvas:
+				self.points_canvas.delete("point")  # Delete all items with tag "point"
 
 		# Clear any previous error messages
 		self.error_label.config(text="")
 		self.show_error("Point reset. Now click on new points to capture.", is_error=False)
+
 		
 	
 	def reset_calibration_button(self):
