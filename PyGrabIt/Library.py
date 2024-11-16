@@ -121,8 +121,8 @@ class GraphGrabberApp:
 		self.data_fit_button.pack(side=tk.LEFT, padx=5, pady=5)
 		
 		self.frame4 = tk.Frame(root)
-		self.frame4.pack(side=tk.RIGHT, fill=tk.X, padx=20, pady=0)
-		self.bottom_text_label = tk.Label(self.frame4, text="Version  "+str(self.version), font=("Helvetica", 8, "bold"), fg="blue", anchor="e")
+		self.frame4.pack(side=tk.RIGHT, fill=tk.X, padx=3, pady=0)
+		self.bottom_text_label = tk.Label(self.frame4, text="Version  "+str(self.version), font=("Helvetica", 8, "bold"), fg="#006400", anchor="e")
 		self.bottom_text_label.pack()
 
 		
